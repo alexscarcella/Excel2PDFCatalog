@@ -1,6 +1,6 @@
 {
-    "excel_file": "",
-    "output_folder": "E:\\ALMAVIVA\\OneDrive - Almaviva SpA\\Documenti\\Generazione catalogo - Python",
+    "excel_file": "E:/ALMAVIVA/OneDrive - Almaviva SpA/Documenti/Excel2PDFCatalog/example_excel/Product list example.xlsx",
+    "output_folder": "E:/ALMAVIVA/OneDrive - Almaviva SpA/Documenti/Excel2PDFCatalog/example_catalog",
     "break_page_company": true,
     "generate_random_images": false,
     "title": "CHANGE THE TITLE",

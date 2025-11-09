@@ -1,10 +1,12 @@
 tmp/*
 app.log*
-*.pdf
-*.xlsx
+/*.xlsx
+/*.pdf
 img_general/*
 img_products/*
 .DS_Store
 .vscode/
 .venv/
 __pycache__/
+_PAOLO/
+.gitignore
