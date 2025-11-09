@@ -8,52 +8,8 @@ import app.build_PDF as build_PDF
 
 def build_UI_and_GO():
 
-     colors_var_array_dictionary = ["COVER_TITLE_COLOR", 
-                                   "COVER_SUBTITLE_COLOR", 
-                                   "COVER_BACKGROUND_COLOR", 
-                                   "FOOTER_COLOR", 
-                                   "CATEGORY_TITLE_COLOR", 
-                                   "CATEGORY_BACKGROUND_COLOR",
-                                   "COMPANY_TITLE",
-                                   "PRODUCTS_BACKGROUND",
-                                   "PRODUCTS_BACKGROUND",
-                                   "TABLE_COMPANY_NAME",
-                                   "PRODUCTS_BACKGROUND",
-                                   "TABLE_ITEM_NAME",
-                                   "TABLE_ITEM_PRICE",
-                                   "TABLE_ITEM_SIZE",
-                                   "TABLE_ITEM_NEWS",
-                                   "TABLE_BACKGROUND",
-                                   "TABLE_BORDER",
-                                   "BODY_BACKGROUND",
-                                   "PARAGRAPH_TITLE1",
-                                   "PARAGRAPH_TITLE2",
-                                   "PARAGRAPH"]
-     
-     # # colors_var_array_dictionary è una lista (o altro iterabile) di stringhe
-     # colors_var_array = {"COVER_TITLE_COLOR": "#ffffff",
-     #                     "COVER_SUBTITLE_COLOR": "#ffffff",
-     #                     "COVER_BACKGROUND_COLOR": "#c37225",
-     #                     "FOOTER_COLOR": "#000000",
-     #                     "CATEGORY_TITLE_COLOR": "#000000",
-     #                     "CATEGORY_BACKGROUND_COLOR": "#c37225",
-     #                     "COMPANY_TITLE": "#000000",
-     #                     "PRODUCTS_BACKGROUND": "#e6dbc6",
-     #                     "TABLE_COMPANY_NAME": "#c37225",
-     #                     "TABLE_ITEM_NAME": "#c37225",
-     #                     "TABLE_ITEM_PRICE": "#117703",
-     #                     "TABLE_ITEM_SIZE": "#c37225",
-     #                     "TABLE_ITEM_NEWS": "#c37225",
-     #                     "TABLE_BACKGROUND": "#ffffff",
-     #                     "TABLE_BORDER": "#c37225",
-     #                     "BODY_BACKGROUND": "#e6dbc6",
-     #                     "PARAGRAPH_TITLE1": "#c37225",
-     #                     "PARAGRAPH_TITLE2": "#000000",
-     #                     "PARAGRAPH": "#000000"
-     #                     }
-
      def browse_file():
-          selected_file = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")], title="Seleziona il file XLSX:")
+          selected_file = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")], title="Select the XLSX file:")
           if selected_file:
                     config_utils.excel_file = selected_file
                     file_label.config(text=config_utils.excel_file)
@@ -67,10 +23,10 @@ def build_UI_and_GO():
                logger.info(f"Output folder selected - {config_utils.output_folder}")         
 
      def save_config():
-          conferma = messagebox.askyesno("Conferma", "Sei sicuro di voler eseguire l'operazione?")
+          conferma = messagebox.askyesno("Confirmation", "Are you sure you want to perform this operation?")
           if conferma:
                config_utils.save_config()
-               messagebox.showinfo("Eseguito", "Operazione completata!")
+               messagebox.showinfo("Executed", "Operation complete!")
 
      def start_build_pdf():
           logger.info(f"Execute with this parameters:")
@@ -80,7 +36,7 @@ def build_UI_and_GO():
           logger.info(f"--> title: {config_utils.title}")
           logger.info(f"--> subtitle: {config_utils.subtitle}")
           logger.info(f"--> footer: {config_utils.footer}")
-          conferma = messagebox.askyesno("Conferma", "Sei sicuro di voler eseguire l'operazione?")
+          conferma = messagebox.askyesno("Confirmation", "Are you sure you want to perform this operation?")
           if conferma:
                if config_utils.excel_file == None: 
                     logger.warning(f"No XSLX file selected!")
@@ -93,7 +49,7 @@ def build_UI_and_GO():
                          config_utils.subtitle,
                          config_utils.footer
                          )
-                    messagebox.showinfo("Eseguito", "Operazione completata!")
+                    messagebox.showinfo("Executed", "Operation complete!")
                     config_utils.save_config()
 
      def update_break_page_company():
@@ -151,7 +107,7 @@ def build_UI_and_GO():
      FRAME_PADDING = 5
      WINDOWS_USABLE_WIDTH = (WINDOWS_WIDTH//2) - (FRAME_PADDING*2)
      root = tk.Tk()
-     root.title(f"Product catalogue generator - from Excel to PDF - v{config_utils.__version__}")
+     root.title(f"Excel2PDFCatalog - v{config_utils.__version__}")
      root.geometry(f"{WINDOWS_WIDTH}x{WINDOWS_HEIGHT}")
      root.resizable(False, False)
 
@@ -238,22 +194,23 @@ def build_UI_and_GO():
      # -------------- frame sn colori --------------------------------------
      # ----------------------------------------------------------------------
      grid_row = 0
-     for col in colors_var_array_dictionary:
-          cvs_color = tk.Canvas(frame_colors, width=50, height=20, bg=config_utils.colors_dictionary[col], highlightthickness=1, highlightbackground="black")
+     #for col in colors_var_array_dictionary:
+     for k, v in config_utils.colors_dictionary.items():
+          cvs_color = tk.Canvas(frame_colors, width=50, height=20, bg=config_utils.colors_dictionary[k], highlightthickness=1, highlightbackground="black")
           cvs_color.grid(row=grid_row, column=0, pady=0, padx=FRAME_PADDING, sticky="w")
           entry_var_color = tk.StringVar()
-          entry_var_color.set(config_utils.colors_dictionary[col])
+          entry_var_color.set(config_utils.colors_dictionary[k])
           entry_color = tk.Entry(frame_colors, textvariable=entry_var_color, width=10, bg="white")
           # In Tkinter, se scrivessi:
           # command=choose_color(col, lbl, cvs) oppure choose_color(c, e, v)
           # ogni funzione verrebbe eseguita subito al momento della creazione del bottone, invece di aspettare il click.
           # Con lambda, invece, si crea una funzione che verrà chiamata solo al click.
-          # c prenda il valore corrente di "col" al momento della creazione del bottone, "e" prenda l'entry, "v" prenda la canvas.
+          # "c" prenda il valore corrente di "k" al momento della creazione del bottone, "e" prenda l'entry, "v" prenda la canvas.
           # Questo è fondamentale se stai creando più controlli in un ciclo: 
-          # senza i parametri di default, tutti i bottoni finirebbero per usare l’ultimo valore di "col".
-          entry_color.bind("<KeyRelease>",lambda event, c=col, e=entry_color, v=cvs_color: update_color(c, e, v))
+          # senza i parametri di default, tutti i bottoni finirebbero per usare l’ultimo valore di "k".
+          entry_color.bind("<KeyRelease>",lambda event, c=k, e=entry_color, v=cvs_color: update_color(c, e, v))
           entry_color.grid(row=grid_row, column=1, sticky="e", padx=FRAME_PADDING)
-          bt = tk.Button(frame_colors, text=f"{col.replace("_"," ").capitalize()}", width=30, command=lambda c=col, e=entry_color, v=cvs_color: choose_color(c, e, v))
+          bt = tk.Button(frame_colors, text=f"{k.replace("_"," ").capitalize()}", width=30, command=lambda c=k, e=entry_color, v=cvs_color: choose_color(c, e, v))
           bt.grid(row=grid_row, column=2, pady=0, sticky="w")
           grid_row= grid_row + 1
 

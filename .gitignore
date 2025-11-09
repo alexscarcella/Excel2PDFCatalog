@@ -1,4 +1,4 @@
-tmp/*
+tmp/*.png
 app.log*
 /*.xlsx
 /*.pdf

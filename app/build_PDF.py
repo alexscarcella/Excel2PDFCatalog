@@ -18,6 +18,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from app.logger import logger
 from pathlib import Path
 from app.images_utils import generate_image, resize_image
+import app.config_utils as config_utils
 
 
 # coordinate system:
@@ -54,25 +55,25 @@ PAGE_WIDTH, PAGE_HEIGHT  = A4
 PAGE_MARGIN = int(config.get("Layout","MARGIN")) * cm
 #---------------------------------------------------
 # colors
-COVER_TITLE_COLOR = config.get("Colors","COVER_TITLE")
-COVER_SUBTITLE_COLOR = config.get("Colors","COVER_SUBTITLE")
-COVER_BACKGROUND_COLOR = config.get("Colors","COVER_BACKGROUND")
-FOOTER_COLOR = config.get("Colors","FOOTER")
-CATEGORY_TITLE_COLOR = config.get("Colors","CATEGORY_TITLE")
-CATEGORY_BACKGROUND_COLOR = config.get("Colors","CATEGORY_BACKGROUND")
-COMPANY_TITLE_COLOR = config.get("Colors","COMPANY_TITLE")
-PRODUCTS_BACKGROUND_COLOR = config.get("Colors","PRODUCTS_BACKGROUND")
-TABLE_COMPANY_NAME_COLOR = config.get("Colors","TABLE_COMPANY_NAME")
-TABLE_ITEM_NAME_COLOR = config.get("Colors","TABLE_ITEM_NAME")
-TABLE_ITEM_PRICE_COLOR = config.get("Colors","TABLE_ITEM_PRICE")
-TABLE_ITEM_SIZE_COLOR = config.get("Colors","TABLE_ITEM_SIZE")
-TABLE_ITEM_NEWS_COLOR = config.get("Colors","TABLE_ITEM_NEWS")
-TABLE_BACKGROUND_COLOR = config.get("Colors","TABLE_BACKGROUND")
-TABLE_BORDER_COLOR = config.get("Colors","TABLE_BORDER")
-BODY_BACKGROUND_COLOR = config.get("Colors","BODY_BACKGROUND")
-PARAGRAPH_TITLE1_COLOR = config.get("Colors","PARAGRAPH_TITLE1")
-PARAGRAPH_TITLE2_COLOR = config.get("Colors","PARAGRAPH_TITLE2")
-PARAGRAPH_COLOR = config.get("Colors","PARAGRAPH")
+#COVER_TITLE_COLOR = config.get("Colors","COVER_TITLE")
+#COVER_SUBTITLE_COLOR = config.get("Colors","COVER_SUBTITLE")
+#COVER_BACKGROUND_COLOR = config.get("Colors","COVER_BACKGROUND")
+# FOOTER_COLOR = config.get("Colors","FOOTER")
+# CATEGORY_TITLE_COLOR = config.get("Colors","CATEGORY_TITLE")
+# CATEGORY_BACKGROUND_COLOR = config.get("Colors","CATEGORY_BACKGROUND")
+# COMPANY_TITLE_COLOR = config.get("Colors","COMPANY_TITLE")
+# PRODUCTS_BACKGROUND_COLOR = config.get("Colors","PRODUCTS_BACKGROUND")
+# TABLE_COMPANY_NAME_COLOR = config.get("Colors","TABLE_COMPANY_NAME")
+# TABLE_ITEM_NAME_COLOR = config.get("Colors","TABLE_ITEM_NAME")
+# TABLE_ITEM_PRICE_COLOR = config.get("Colors","TABLE_ITEM_PRICE")
+# TABLE_ITEM_SIZE_COLOR = config.get("Colors","TABLE_ITEM_SIZE")
+# TABLE_ITEM_NEWS_COLOR = config.get("Colors","TABLE_ITEM_NEWS")
+# TABLE_BACKGROUND_COLOR = config.get("Colors","TABLE_BACKGROUND")
+# TABLE_BORDER_COLOR = config.get("Colors","TABLE_BORDER")
+# BODY_BACKGROUND_COLOR = config.get("Colors","BODY_BACKGROUND")
+# PARAGRAPH_TITLE1_COLOR = config.get("Colors","PARAGRAPH_TITLE1")
+# PARAGRAPH_TITLE2_COLOR = config.get("Colors","PARAGRAPH_TITLE2")
+# PARAGRAPH_COLOR = config.get("Colors","PARAGRAPH")
 #---------------------------------------------------
 # fonts
 pdfmetrics.registerFont(TTFont("Bandi Regular", "./fonts/Core Bandi Face W01 Regular.ttf"))
@@ -80,19 +81,19 @@ font_primary = "Bandi Regular"
 #---------------------------------------------------
 # styles
 styles = getSampleStyleSheet()
-styles.add(ParagraphStyle(name='CoverTitle', fontName=font_primary, fontSize=50, leading=42, alignment=TA_CENTER, spaceAfter=10, textColor=COVER_TITLE_COLOR))
-styles.add(ParagraphStyle(name="CoverSubtitle", fontName=font_primary, fontSize=20, alignment=TA_CENTER, textColor=COVER_SUBTITLE_COLOR , spaceAfter=20))
-styles.add(ParagraphStyle(name="Footer", fontName=font_primary, fontSize=10, alignment=TA_CENTER, textColor=FOOTER_COLOR, spaceAfter=0))
-styles.add(ParagraphStyle(name="CategoryTitle", fontName=font_primary, fontSize=54, alignment=TA_CENTER, textColor=CATEGORY_TITLE_COLOR, spaceAfter=20))
-styles.add(ParagraphStyle(name="CompanyTitle", fontName=font_primary, fontSize=48, alignment=TA_CENTER, textColor=COMPANY_TITLE_COLOR, spaceAfter=20))
-styles.add(ParagraphStyle(name="TableCompanyName", fontName=font_primary, fontSize=8, alignment=TA_CENTER, textColor=TABLE_COMPANY_NAME_COLOR, spaceAfter=0, spaceBefore=0, textTransform='uppercase'))
-styles.add(ParagraphStyle(name="TableItem", fontName=font_primary, fontSize=11, alignment=TA_CENTER, textColor=TABLE_ITEM_NAME_COLOR, spaceAfter=0))
-styles.add(ParagraphStyle(name="TableItemPrice", fontName=font_primary, fontSize=12, alignment=2, textColor=TABLE_ITEM_PRICE_COLOR, spaceAfter=0))
-styles.add(ParagraphStyle(name="TableItemSize", fontName=font_primary, fontSize=10, alignment=0, textColor=TABLE_ITEM_SIZE_COLOR, spaceAfter=0))
-styles.add(ParagraphStyle(name="TableItemNews", fontName=font_primary, fontSize=10, alignment=2, textColor=TABLE_ITEM_NEWS_COLOR, spaceAfter=0))
-styles.add(ParagraphStyle(name="ParTitle1", fontName=font_primary, fontSize=30, alignment=0, textColor=PARAGRAPH_TITLE1_COLOR, spaceAfter=0))
-styles.add(ParagraphStyle(name="ParTitle2", fontName=font_primary, fontSize=20, alignment=0, textColor=PARAGRAPH_TITLE2_COLOR, spaceAfter=0))
-styles.add(ParagraphStyle(name="Par", fontName=font_primary, fontSize=10, alignment=0, textColor=PARAGRAPH_COLOR, spaceAfter=0))
+styles.add(ParagraphStyle(name='CoverTitle', fontName=font_primary, fontSize=50, leading=42, alignment=TA_CENTER, spaceAfter=10, textColor=config_utils.colors_dictionary["COVER_TITLE_COLOR"]))
+styles.add(ParagraphStyle(name="CoverSubtitle", fontName=font_primary, fontSize=20, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["COVER_SUBTITLE_COLOR"] , spaceAfter=20))
+styles.add(ParagraphStyle(name="Footer", fontName=font_primary, fontSize=10, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["FOOTER_COLOR"], spaceAfter=0))
+styles.add(ParagraphStyle(name="CategoryTitle", fontName=font_primary, fontSize=54, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["CATEGORY_TITLE_COLOR"], spaceAfter=20))
+styles.add(ParagraphStyle(name="CompanyTitle", fontName=font_primary, fontSize=48, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["COMPANY_TITLE_COLOR"], spaceAfter=20))
+styles.add(ParagraphStyle(name="TableCompanyName", fontName=font_primary, fontSize=8, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["TABLE_COMPANY_NAME_COLOR"], spaceAfter=0, spaceBefore=0, textTransform='uppercase'))
+styles.add(ParagraphStyle(name="TableItem", fontName=font_primary, fontSize=11, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["TABLE_ITEM_NAME_COLOR"], spaceAfter=0))
+styles.add(ParagraphStyle(name="TableItemPrice", fontName=font_primary, fontSize=12, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_PRICE_COLOR"], spaceAfter=0))
+styles.add(ParagraphStyle(name="TableItemSize", fontName=font_primary, fontSize=10, alignment=0, textColor=config_utils.colors_dictionary["TABLE_ITEM_SIZE_COLOR"], spaceAfter=0))
+styles.add(ParagraphStyle(name="TableItemNews", fontName=font_primary, fontSize=10, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_NEWS_COLOR"], spaceAfter=0))
+styles.add(ParagraphStyle(name="ParTitle1", fontName=font_primary, fontSize=30, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE1_COLOR"], spaceAfter=0))
+styles.add(ParagraphStyle(name="ParTitle2", fontName=font_primary, fontSize=20, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE2_COLOR"], spaceAfter=0))
+styles.add(ParagraphStyle(name="Par", fontName=font_primary, fontSize=10, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_COLOR"], spaceAfter=0))
 #
 #---------------------------------------------------
 locale.setlocale(locale.LC_ALL, config.get("System","LOCALE"))
@@ -111,7 +112,7 @@ story = []
 #===========================================================================
 def cover_on_page(canvas, doc):
     canvas.saveState()
-    canvas.setFillColor(COVER_BACKGROUND_COLOR)
+    canvas.setFillColor(config_utils.colors_dictionary["COVER_BACKGROUND_COLOR"])
     canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
     img_logo_path = f"./{OTHER_IMAGES_SUBFOLDER}/logo.png"
     # img_logo = ImageReader(img_logo_path)
@@ -123,9 +124,9 @@ def cover_on_page(canvas, doc):
 def body_on_page(canvas, doc):
     # semplice header e footer per le pagine di testo a tutta larghezza
     canvas.saveState()
-    canvas.setFillColor(BODY_BACKGROUND_COLOR)
+    canvas.setFillColor(config_utils.colors_dictionary["BODY_BACKGROUND_COLOR"])
     canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
-    canvas.setFillColor(PARAGRAPH_COLOR)
+    canvas.setFillColor(config_utils.colors_dictionary["PARAGRAPH_COLOR"])
     canvas.setFont(font_primary, 8)
     canvas.drawString(PAGE_MARGIN, PAGE_HEIGHT - PAGE_MARGIN // 2, 'Sezione 2')
     canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_MARGIN // 2, f'Pagina {doc.page}')
@@ -134,9 +135,9 @@ def body_on_page(canvas, doc):
 def category_on_page(canvas, doc):
     # semplice header e footer per le pagine di testo a tutta larghezza
     canvas.saveState()
-    canvas.setFillColor(CATEGORY_BACKGROUND_COLOR)
+    canvas.setFillColor(config_utils.colors_dictionary["CATEGORY_BACKGROUND_COLOR"])
     canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
-    canvas.setFillColor(CATEGORY_TITLE_COLOR)
+    canvas.setFillColor(config_utils.colors_dictionary["CATEGORY_TITLE_COLOR"])
     canvas.setFont(font_primary, 8)
     canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_MARGIN // 2, f'Pagina {doc.page}')
     canvas.restoreState()
@@ -144,7 +145,7 @@ def category_on_page(canvas, doc):
 def matrix_3x3_on_page(canvas, doc):
     # header/footer per la sezione a colonne
     canvas.saveState()
-    canvas.setFillColor(PRODUCTS_BACKGROUND_COLOR)
+    canvas.setFillColor(config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"])
     canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
     canvas.setFont(font_primary, 8)
     #canvas.drawString(MARGIN, PAGE_HEIGHT - MARGIN // 2, 'Sezione 3')
@@ -263,10 +264,10 @@ def flush_1x3_row():
                         colWidths=[USABLE_WIDTH/3, USABLE_WIDTH/3, USABLE_WIDTH/3],
                         rowHeights=[USABLE_HEIGHT/3])
     raw_1x3.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), PRODUCTS_BACKGROUND_COLOR),
+        ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"]),
         ('ALIGN',(0,0),(-1,-1),'CENTER'),
         ("VALIGN", (0, 0), (-1,-1), "MIDDLE"),
-        ('GRID', (0,0), (-1,-1), 0, PRODUCTS_BACKGROUND_COLOR)
+        ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"])
     ]))
     story.append(KeepTogether(raw_1x3))
     raw_1x3_items = ["","",""]
@@ -369,10 +370,6 @@ def build_pdf(file_path, folder_path, brk: bool, title, subtitle, footer):
             logger.error("Product image not founded! ", exc_info=True)
 
         
-        #img = Image(f"./{PRODUCTS_IMAGES_SUBFOLDER}/immagine_esempio.jpg", IMAGE_SIZE, IMAGE_SIZE)
-        
-
-        
         formatted_company = f"<b><i>{r[XLS_COMPANY]}</i></b>"
         formatted_item = f"<b>{r[XLS_ITEM]}</b>"
         
@@ -385,15 +382,15 @@ def build_pdf(file_path, folder_path, brk: bool, title, subtitle, footer):
         ]
         table_item = Table(info, colWidths=[USABLE_WIDTH/6-TABLE_GAP, USABLE_WIDTH/6-TABLE_GAP], rowHeights=[None, 0.5*cm, 1.1*cm, None])
         table_item.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,-1), TABLE_BACKGROUND_COLOR),
+            ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
             ("VALIGN", (0, 0), (-1,-1), "MIDDLE"),
             ('ALIGN',(0,0),(0,-1),'CENTER'),
             ('BOTTOMPADDING', (0,0), (-1,-1), 0.2 * cm),
             ('TOPPADDING', (0,0), (-1,-1), 0.3 * cm),
             ('RIGHTPADDING', (0,0), (-1,-1), 0.3 * cm),
             ('LEFTPADDING', (0,0), (-1,-1), 0.3 * cm),
-            ('GRID', (0,0), (-1,-1), 0, TABLE_BACKGROUND_COLOR),
-            ('BOX', (0, 0), (-1, -1), 2, TABLE_BORDER_COLOR),
+            ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
+            ('BOX', (0, 0), (-1, -1), 2, config_utils.colors_dictionary["TABLE_BORDER_COLOR"]),
             ('SPAN',(0,0),(-1,0)),
             ('SPAN',(0,1),(-1,1)),
             ('SPAN',(0,2),(-1,2)),
@@ -419,8 +416,8 @@ def build_pdf(file_path, folder_path, brk: bool, title, subtitle, footer):
             ]
         table_item_big=Table(table_item_big_info, rowHeights=[0.3*cm, None])
         table_item_big.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,-1), PRODUCTS_BACKGROUND_COLOR),
-            ('GRID', (0,0), (-1,-1), 0, PRODUCTS_BACKGROUND_COLOR),
+            ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"]),
+            ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"]),
             ("VALIGN", (0, 0), (0,-1), "BOTTOM"),
             ("VALIGN", (0, 0), (1,-1), "TOP"),
             ('ALIGN',(0,0),(-1,-1),'CENTER'),
