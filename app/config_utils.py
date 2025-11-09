@@ -28,22 +28,22 @@ colors_dictionary = {"COVER_TITLE_COLOR": "#ffffff",
                     "FOOTER_COLOR": "#000000",
                     "CATEGORY_TITLE_COLOR": "#000000",
                     "CATEGORY_BACKGROUND_COLOR": "#c37225",
-                    "COMPANY_TITLE": "#000000",
-                    "PRODUCTS_BACKGROUND": "#e6dbc6",
-                    "TABLE_COMPANY_NAME": "#c37225",
-                    "TABLE_ITEM_NAME": "#c37225",
-                    "TABLE_ITEM_PRICE": "#117703",
-                    "TABLE_ITEM_SIZE": "#c37225",
-                    "TABLE_ITEM_NEWS": "#c37225",
-                    "TABLE_BACKGROUND": "#ffffff",
-                    "TABLE_BORDER": "#c37225",
-                    "BODY_BACKGROUND": "#e6dbc6",
-                    "PARAGRAPH_TITLE1": "#c37225",
-                    "PARAGRAPH_TITLE2": "#000000",
-                    "PARAGRAPH": "#000000"
+                    "COMPANY_TITLE_COLOR": "#000000",
+                    "PRODUCTS_BACKGROUND_COLOR": "#e6dbc6",
+                    "TABLE_COMPANY_NAME_COLOR": "#c37225",
+                    "TABLE_ITEM_NAME_COLOR": "#c37225",
+                    "TABLE_ITEM_PRICE_COLOR": "#117703",
+                    "TABLE_ITEM_SIZE_COLOR": "#c37225",
+                    "TABLE_ITEM_NEWS_COLOR": "#c37225",
+                    "TABLE_BACKGROUND_COLOR": "#ffffff",
+                    "TABLE_BORDER_COLOR": "#c37225",
+                    "BODY_BACKGROUND_COLOR": "#e6dbc6",
+                    "PARAGRAPH_TITLE1_COLOR": "#c37225",
+                    "PARAGRAPH_TITLE2_COLOR": "#000000",
+                    "PARAGRAPH_COLOR": "#000000"
                     }
 
-# [Colors]
+# [Colors defaults]
 # COVER_TITLE = #ffffff
 # COVER_SUBTITLE = #ffffff
 # COVER_BACKGROUND = #c37225

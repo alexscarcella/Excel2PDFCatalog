@@ -1,6 +1,10 @@
 # -------------------------
 # OS / Editor junk files
 # -------------------------
+tmp/*.png
+app.log*
+/*.xlsx
+/*.pdf
 .DS_Store
 Thumbs.db
 .vscode/
