@@ -7,6 +7,7 @@
 import os
 import json
 import sys
+from pathlib import Path
 from app.logger import logger
 
 __version__ = "0.3"
@@ -14,14 +15,14 @@ __version__ = "0.3"
 # valori di default che poi vengono sovrascritti
 # dal file di configurazione JSON
 excel_file = ""
-output_folder = os.getcwd()
+# output_folder = os.getcwd()
 break_page_company = True
 generate_random_images = False
 title = "CHANGE THE TITLE"
 subtitle = "Change this subtitle"
 footer = "this is a footer"
 
-# colors_var_array_dictionary è una lista (o altro iterabile) di stringhe
+# colors_dictionary è una lista (o altro iterabile) di stringhe
 colors_dictionary = {"COVER_TITLE_COLOR": "#ffffff",
                     "COVER_SUBTITLE_COLOR": "#ffffff",
                     "COVER_BACKGROUND_COLOR": "#c37225",
@@ -42,6 +43,13 @@ colors_dictionary = {"COVER_TITLE_COLOR": "#ffffff",
                     "PARAGRAPH_TITLE2_COLOR": "#000000",
                     "PARAGRAPH_COLOR": "#000000"
                     }
+
+path_dictionary = {
+    "OUTPUT_PDF_FOLDER_PATH": Path(f"{os.getcwd()}example_catalog/"),
+    "PRODUCTS_IMAGES_FOLDER_PATH": Path(f"{os.getcwd()}/img_products/"),
+    "GENERAL_IMAGES_FOLDER_PATH":Path(f"{os.getcwd()}/img_general/"),
+    "TMP_SYSTEM_FOLDER_PATH": Path(f"{os.getcwd()}/tmp/")
+}
 
 # [Colors defaults]
 # COVER_TITLE = #ffffff
@@ -89,6 +97,11 @@ def load_config():
                 for k, v in colors_dictionary.items():
                     colors_dictionary[k] = config[k]
                     logger.info(f"{v}->{k}")
+
+                # paths
+                for k, v in path_dictionary.items():
+                    path_dictionary[k] = Path(config[k])
+                    logger.info(f"{str(v)}->{k}")
             except:
                 logger.error("JSON Config file error", exc_info=True)
                 config = {}
@@ -115,6 +128,10 @@ def save_config():
         for k, v in colors_dictionary.items():
             config[f"{k}"] = v
             logger.info(f"{k}->{v}")
+        #paths
+        for k, v in path_dictionary.items():
+            config[f"{k}"] = str(v)
+            logger.info(f"{k}->{str(v)}")
 
         with open(CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=4)

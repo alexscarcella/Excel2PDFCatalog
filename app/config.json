@@ -1,6 +1,6 @@
 {
     "excel_file": "E:/ALMAVIVA/OneDrive - Almaviva SpA/Documenti/Excel2PDFCatalog/example_excel/Product list example.xlsx",
-    "output_folder": "E:/ALMAVIVA/OneDrive - Almaviva SpA/Documenti/Excel2PDFCatalog/example_catalog",
+    "output_folder": "E:\\ALMAVIVA\\OneDrive - Almaviva SpA\\Documenti\\Excel2PDFCatalog",
     "break_page_company": true,
     "generate_random_images": false,
     "title": "CHANGE THE TITLE",
@@ -8,7 +8,7 @@
     "footer": "this is a footer",
     "COVER_TITLE_COLOR": "#ffffff",
     "COVER_SUBTITLE_COLOR": "#ffffff",
-    "COVER_BACKGROUND_COLOR": "#ff4242",
+    "COVER_BACKGROUND_COLOR": "#c37225",
     "FOOTER_COLOR": "#000000",
     "CATEGORY_TITLE_COLOR": "#000000",
     "CATEGORY_BACKGROUND_COLOR": "#c37225",
@@ -19,10 +19,14 @@
     "TABLE_ITEM_PRICE_COLOR": "#117703",
     "TABLE_ITEM_SIZE_COLOR": "#c37225",
     "TABLE_ITEM_NEWS_COLOR": "#c37225",
-    "TABLE_BACKGROUND_COLOR": "#c4c879",
+    "TABLE_BACKGROUND_COLOR": "#ffffff",
     "TABLE_BORDER_COLOR": "#c37225",
-    "BODY_BACKGROUND_COLOR": "#49f8d0",
+    "BODY_BACKGROUND_COLOR": "#e6dbc6",
     "PARAGRAPH_TITLE1_COLOR": "#c37225",
     "PARAGRAPH_TITLE2_COLOR": "#000000",
-    "PARAGRAPH_COLOR": "#000000"
+    "PARAGRAPH_COLOR": "#000000",
+    "OUTPUT_PDF_FOLDER_PATH": "E:\\ALMAVIVA\\OneDrive - Almaviva SpA\\Documenti\\Excel2PDFCatalog\\_PAOLO",
+    "PRODUCTS_IMAGES_FOLDER_PATH": "E:\\ALMAVIVA\\OneDrive - Almaviva SpA\\Documenti\\Excel2PDFCatalog\\_PAOLO",
+    "GENERAL_IMAGES_FOLDER_PATH": "E:\\ALMAVIVA\\OneDrive - Almaviva SpA\\Documenti\\Excel2PDFCatalog\\img_general",
+    "TMP_SYSTEM_FOLDER_PATH": "E:\\ALMAVIVA\\OneDrive - Almaviva SpA\\Documenti\\Excel2PDFCatalog\\tmp"
 }

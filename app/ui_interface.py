@@ -15,12 +15,13 @@ def build_UI_and_GO():
                     file_label.config(text=config_utils.excel_file)
                     logger.info(f"File Excel selected - {config_utils.excel_file}")
 
-     def browse_folder():
+     def browse_folder(kk, ll):
           selected_folder = filedialog.askdirectory()
           if selected_folder:
-               config_utils.output_folder = selected_folder
-               folder_label.config(text=config_utils.output_folder)
-               logger.info(f"Output folder selected - {config_utils.output_folder}")         
+               # config_utils.output_folder = selected_folder
+               config_utils.path_dictionary[kk] = selected_folder
+               ll.config(text=config_utils.path_dictionary[kk])
+               logger.info(f"Output folder selected - {config_utils.path_dictionary[kk]}")         
 
      def save_config():
           conferma = messagebox.askyesno("Confirmation", "Are you sure you want to perform this operation?")
@@ -92,7 +93,6 @@ def build_UI_and_GO():
 
      # imposto la finestra
      FRAME_PADDING = 5
-     WINDOWS_USABLE_WIDTH = 300
      root = tk.Tk()
      root.title(f"Excel2PDFCatalog - v{config_utils.__version__}")
 
@@ -181,7 +181,6 @@ def build_UI_and_GO():
      # -------------- frame sn colori --------------------------------------
      # ----------------------------------------------------------------------
      grid_row = 0
-     #for col in colors_var_array_dictionary:
      for k, v in config_utils.colors_dictionary.items():
           cvs_color = tk.Canvas(frame_colors, width=50, height=20, bg=config_utils.colors_dictionary[k], highlightthickness=1, highlightbackground="black")
           cvs_color.grid(row=grid_row, column=0, pady=0, padx=FRAME_PADDING, sticky="w")
@@ -202,34 +201,37 @@ def build_UI_and_GO():
           grid_row= grid_row + 1
 
      # ----------------------------------------------------------------------
-     # ---------------frame dx ----------------------------------------------
+     # ---------------frame dx - file ---------------------------------------
      # ----------------------------------------------------------------------
      grid_row = 0
      # Selezione file
-     tk.Label(frame_right, text="Select the XLSX file with the list of products:", anchor="e", justify=tk.LEFT, wraplength=WINDOWS_USABLE_WIDTH//2).grid(row=grid_row, column=0, sticky="w")
-     tk.Button(frame_right, width=15, text="Select the file", command=browse_file).grid(row=grid_row, column=1, sticky="e", padx=FRAME_PADDING)
+     tk.Label(frame_right, text="Select the XLSX file with the list of products:", anchor="e", justify=tk.LEFT).grid(row=grid_row, column=0, sticky="w", columnspan=2)
      grid_row= grid_row + 1
-     file_label = tk.Label(frame_right, text="(...)", fg="blue", justify=tk.LEFT, wraplength=WINDOWS_USABLE_WIDTH)
-     file_label.grid(row=grid_row, column=0, columnspan=2, sticky="w")
+     tk.Button(frame_right, width=20, text="Select the file", command=browse_file).grid(row=grid_row, column=0, sticky="e", padx=FRAME_PADDING)
+     file_label = tk.Label(frame_right, text=f"{config_utils.excel_file}", fg="blue", justify=tk.LEFT, wraplength=400)
+     file_label.grid(row=grid_row, column=1, sticky="w")
      file_label.config(text=config_utils.excel_file)
      grid_row= grid_row + 1
      # Separator orizzontale
      separator = ttk.Separator(frame_right, orient='horizontal')  # oppure 'vertical'
      separator.grid(row=grid_row, column=0, columnspan=2, sticky="ew", padx=0, pady=FRAME_PADDING)
      grid_row= grid_row + 1
-     # Selezione cartella
-     tk.Label(frame_right, text="Select the folder where you want to save the PDF file of the catalogue:", justify=tk.LEFT, wraplength=WINDOWS_USABLE_WIDTH//2).grid(row=grid_row, column=0, sticky="w")
-     tk.Button(frame_right, width=15, text="Select the folder", command=browse_folder).grid(row=grid_row, column=1, sticky="e", padx=FRAME_PADDING)
-     grid_row= grid_row + 1
-     folder_label = tk.Label(frame_right, text="", fg="blue", justify="left", wraplength=WINDOWS_USABLE_WIDTH)
-     folder_label.grid(row=grid_row, column=0, columnspan=2, sticky="w")
-     folder_label.config(text=config_utils.output_folder)
-     grid_row= grid_row + 1
+     # ----------------------------------------------------------------------
+     # ---------------frame dx - path ---------------------------------------
+     # ----------------------------------------------------------------------
+     for k, v in config_utils.path_dictionary.items():
+          tk.Label(frame_right, text=f"{k.replace("_"," ").capitalize()}:", anchor="nw", justify=tk.LEFT, borderwidth=0, relief="solid").grid(row=grid_row, column=0, sticky="w", columnspan=2)
+          grid_row= grid_row + 1
+          folder_label = tk.Label(frame_right, text=f"{str(v)}", fg="blue", justify=tk.LEFT, wraplength=400, borderwidth=0, relief="solid")
+          folder_label.grid(row=grid_row, column=1, sticky="w", padx=FRAME_PADDING)
+          bt_path = tk.Button(frame_right, width=20, text="Select the folder", command=lambda kkk=k, lll=folder_label: browse_folder(kkk, lll))
+          bt_path.grid(row=grid_row, column=0, sticky="w", padx=FRAME_PADDING)
+          grid_row= grid_row + 1
      # Separator orizzontale
      separator = ttk.Separator(frame_right, orient='horizontal')  # oppure 'vertical'
-     separator.grid(row=grid_row, column=0, columnspan=2, sticky="ew", padx=0, pady=FRAME_PADDING)
+     separator.grid(row=grid_row, column=0, columnspan=3, sticky="ew", padx=0, pady=FRAME_PADDING)
      grid_row= grid_row + 1
-     # Popola il frame destro con etichette di testo lungo e colorato
+     # notes
      long_texts = ("NOTES:\n"
      "1. The catalogue is created following the order of the products in the Excel file.\n"
      "2. We recommend sorting the products in the Excel file at least by the 'category' and 'producer' columns.\n"
@@ -239,7 +241,7 @@ def build_UI_and_GO():
      "6. All images must be in .png format.\n"
      "7. The product images are in the folder “img_products” and must be square.\n"
      "8. Other images are in the folder “img_general”.")
-     tk.Label(frame_right, text=long_texts, justify=tk.LEFT, wraplength=WINDOWS_USABLE_WIDTH).grid(row=grid_row, column=0, columnspan=2, sticky="w", pady=FRAME_PADDING)
+     tk.Label(frame_right, text=long_texts, justify=tk.LEFT, wraplength=480, borderwidth=0, relief="solid").grid(row=grid_row, column=0, columnspan=2, sticky="w", pady=FRAME_PADDING)
      grid_row= grid_row + 1
      # Separator orizzontale
      separator = ttk.Separator(frame_right, orient='horizontal')  # oppure 'vertical'
@@ -255,7 +257,7 @@ def build_UI_and_GO():
      root.update_idletasks()   # forza il calcolo delle dimensioni in base ai widget
      root.minsize(root.winfo_width(), root.winfo_height())
      root.geometry(f"{root.winfo_width()}x{root.winfo_height()}")
-     root.resizable(False, False)
+     #root.resizable(False, False)
 
      root.mainloop()
 

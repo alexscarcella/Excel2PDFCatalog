@@ -20,17 +20,6 @@ from pathlib import Path
 from app.images_utils import generate_image, resize_image
 import app.config_utils as config_utils
 
-
-# coordinate system:
-#   y
-#   |
-#   |   page
-#   |
-#   |
-#   0-------x
-#
-# standard desktop publishing (72 DPI)
-#
 # -------------------------------------------------
 warnings.simplefilter("ignore")
 # -------------------------------------------------
@@ -47,33 +36,12 @@ XLS_PRICE = config.get("Excel","XLS_COLUMN_PRICE")
 XLS_COLUMN_DESCRIPTION = config.get("Excel","XLS_COLUMN_DESCRIPTION")
 XLS_COLUMN_IMG = config.get("Excel","XLS_COLUMN_IMG")
 # immagini
-PRODUCTS_IMAGES_SUBFOLDER = config.get("Resources","PRODUCTS_IMAGES_SUBFOLDER")
-OTHER_IMAGES_SUBFOLDER = config.get("Resources","OTHER_IMAGES_SUBFOLDER")
+# PRODUCTS_IMAGES_SUBFOLDER = config.get("Resources","PRODUCTS_IMAGES_SUBFOLDER")
+# OTHER_IMAGES_SUBFOLDER = config.get("Resources","OTHER_IMAGES_SUBFOLDER")
 #---------------------------------------------------
 # dimensioni foglio 
 PAGE_WIDTH, PAGE_HEIGHT  = A4
 PAGE_MARGIN = int(config.get("Layout","MARGIN")) * cm
-#---------------------------------------------------
-# colors
-#COVER_TITLE_COLOR = config.get("Colors","COVER_TITLE")
-#COVER_SUBTITLE_COLOR = config.get("Colors","COVER_SUBTITLE")
-#COVER_BACKGROUND_COLOR = config.get("Colors","COVER_BACKGROUND")
-# FOOTER_COLOR = config.get("Colors","FOOTER")
-# CATEGORY_TITLE_COLOR = config.get("Colors","CATEGORY_TITLE")
-# CATEGORY_BACKGROUND_COLOR = config.get("Colors","CATEGORY_BACKGROUND")
-# COMPANY_TITLE_COLOR = config.get("Colors","COMPANY_TITLE")
-# PRODUCTS_BACKGROUND_COLOR = config.get("Colors","PRODUCTS_BACKGROUND")
-# TABLE_COMPANY_NAME_COLOR = config.get("Colors","TABLE_COMPANY_NAME")
-# TABLE_ITEM_NAME_COLOR = config.get("Colors","TABLE_ITEM_NAME")
-# TABLE_ITEM_PRICE_COLOR = config.get("Colors","TABLE_ITEM_PRICE")
-# TABLE_ITEM_SIZE_COLOR = config.get("Colors","TABLE_ITEM_SIZE")
-# TABLE_ITEM_NEWS_COLOR = config.get("Colors","TABLE_ITEM_NEWS")
-# TABLE_BACKGROUND_COLOR = config.get("Colors","TABLE_BACKGROUND")
-# TABLE_BORDER_COLOR = config.get("Colors","TABLE_BORDER")
-# BODY_BACKGROUND_COLOR = config.get("Colors","BODY_BACKGROUND")
-# PARAGRAPH_TITLE1_COLOR = config.get("Colors","PARAGRAPH_TITLE1")
-# PARAGRAPH_TITLE2_COLOR = config.get("Colors","PARAGRAPH_TITLE2")
-# PARAGRAPH_COLOR = config.get("Colors","PARAGRAPH")
 #---------------------------------------------------
 # fonts
 pdfmetrics.registerFont(TTFont("Bandi Regular", "./fonts/Core Bandi Face W01 Regular.ttf"))
@@ -94,7 +62,6 @@ styles.add(ParagraphStyle(name="TableItemNews", fontName=font_primary, fontSize=
 styles.add(ParagraphStyle(name="ParTitle1", fontName=font_primary, fontSize=30, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE1_COLOR"], spaceAfter=0))
 styles.add(ParagraphStyle(name="ParTitle2", fontName=font_primary, fontSize=20, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE2_COLOR"], spaceAfter=0))
 styles.add(ParagraphStyle(name="Par", fontName=font_primary, fontSize=10, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_COLOR"], spaceAfter=0))
-#
 #---------------------------------------------------
 locale.setlocale(locale.LC_ALL, config.get("System","LOCALE"))
 # Calcola larghezza disponibile
@@ -114,11 +81,13 @@ def cover_on_page(canvas, doc):
     canvas.saveState()
     canvas.setFillColor(config_utils.colors_dictionary["COVER_BACKGROUND_COLOR"])
     canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
-    img_logo_path = f"./{OTHER_IMAGES_SUBFOLDER}/logo.png"
-    # img_logo = ImageReader(img_logo_path)
-    # img_logo_width, img_logo_height = img_logo.getSize()
-    logger.info(f"Load LOGO image: {img_logo_path} - 13x13")
-    canvas.drawImage(f"./{OTHER_IMAGES_SUBFOLDER}/logo.png", x = (PAGE_WIDTH - 13 * cm) / 2, y = (PAGE_HEIGHT - 13 * cm) / 2, width = 13 * cm, height = 13 * cm)
+    # img_logo_path = f"./{config_utils.path_dictionary["GENERAL_IMAGES_FOLDER_PATH"]}/logo.png"
+    img_logo_path = os.path.join(f"{config_utils.path_dictionary['GENERAL_IMAGES_FOLDER_PATH']}", "logo.png")
+    if Path(img_logo_path).exists():
+        logger.info(f"Load LOGO image: {img_logo_path} - 13x13")
+        canvas.drawImage(f"{img_logo_path}", x = (PAGE_WIDTH - 13 * cm) / 2, y = (PAGE_HEIGHT - 13 * cm) / 2, width = 13 * cm, height = 13 * cm)
+    else:
+        logger.warning((f"LOGO image: {img_logo_path} does not exists!"))
     canvas.restoreState()
 
 def body_on_page(canvas, doc):
@@ -358,7 +327,7 @@ def build_pdf(file_path, folder_path, brk: bool, title, subtitle, footer):
         # --------- Leggo le informazioni del singolo prodotto
         IMAGE_SIZE = 4.4 * cm
         try:
-            img_file_path = f"./{PRODUCTS_IMAGES_SUBFOLDER}/{r[XLS_COLUMN_IMG]}.png"
+            img_file_path = f"./{config_utils.path_dictionary["PRODUCTS_IMAGES_FOLDER_PATH"]}/{r[XLS_COLUMN_IMG]}.png"
             if os.path.exists(img_file_path):
                 img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
             else:        
