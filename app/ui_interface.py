@@ -239,9 +239,8 @@ def build_UI_and_GO():
      "3. Excel cells with no content are not allowed: in this case, the PDF will not be produced.\n"
      "4. The field containing the price must be numeric.\n"
      "5. Close the Excel sheet before generating the PDF.\n"
-     "6. All images must be in .png format.\n"
-     "7. The product images are in the folder “img_products” and must be square.\n"
-     "8. Other images are in the folder “img_general”.")
+     "6. All products images must be in <excel col image>.png 1:1 format (square).\n"
+     "7. The logo is a logo.png with 1:1 format (square).")
      tk.Label(frame_right, text=long_texts, justify=tk.LEFT, wraplength=480, borderwidth=0, relief="solid").grid(row=grid_row, column=0, columnspan=2, sticky="w", pady=FRAME_PADDING)
      grid_row= grid_row + 1
      # Separator orizzontale

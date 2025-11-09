@@ -9,7 +9,7 @@ app.log*
 Thumbs.db
 .vscode/
 .idea/
-/app/*config.json
+app/config.json
 
 # -------------------------
 # Python build / cache
