@@ -94,7 +94,7 @@ An Excel file with columns Name, Price, Image can produce a PDF catalog with:
 <img src="https://github.com/alexscarcella/Excel2PDFCatalog/blob/main/assets/Preview_Windows.png?raw=true" alt="Windows UI Screenshot" width="80%">
 
 ### UI Preview (MacOS)
-<img src="https://github.com/alexscarcella/Excel2PDFCatalog/blob/main/assets/Preview_MacOS.png?raw=true" alt="MacOS UI Screenshot" width="80%">
+<img src="https://github.com/alexscarcella/Excel2PDFCatalog/blob/main/assets/Preview_MacOS.png?raw=true" alt="MacOS UI Screenshot" width="85%">
 
 ## 🛠️ Troubleshooting
 

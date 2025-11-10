@@ -14,7 +14,7 @@ __version__ = "0.3"
 
 # valori di default che poi vengono sovrascritti
 # dal file di configurazione JSON
-excel_file = ""
+excel_file = f"{os.getcwd()}/example_excel/Product list example.xlsx"
 break_page_company = True
 generate_random_images = False
 title = "CHANGE THE TITLE"
@@ -44,7 +44,7 @@ colors_dictionary = {"COVER_TITLE_COLOR": "#ffffff",
                     }
 
 path_dictionary = {
-    "OUTPUT_PDF_FOLDER_PATH": Path(f"{os.getcwd()}example_catalog/"),
+    "OUTPUT_PDF_FOLDER_PATH": Path(f"{os.getcwd()}/example_catalog/"),
     "PRODUCTS_IMAGES_FOLDER_PATH": Path(f"{os.getcwd()}/img_products/"),
     "GENERAL_IMAGES_FOLDER_PATH":Path(f"{os.getcwd()}/img_general/"),
     "TMP_SYSTEM_FOLDER_PATH": Path(f"{os.getcwd()}/tmp/")
@@ -74,7 +74,7 @@ path_dictionary = {
 CONFIG_FILE = './app/config.json'
 
 def load_config():
-    global excel_file, output_folder, break_page_company, title, subtitle, footer, generate_random_images
+    global excel_file, break_page_company, title, subtitle, footer, generate_random_images
 
     logger.info("JSON Config file reading...")
     if os.path.exists(CONFIG_FILE):

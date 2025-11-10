@@ -5,6 +5,7 @@ from tkinter import colorchooser
 from app.logger import logger
 import app.config_utils as config_utils
 import app.build_PDF as build_PDF
+from pathlib import Path
 
 def build_UI_and_GO():
      logger.info("Build UI...")
@@ -31,10 +32,12 @@ def build_UI_and_GO():
                messagebox.showinfo("Executed", "Operation complete!")
 
      def start_build_pdf():
+
+          if not check_parameters(): return
+
           logger.info(f"Execute with this parameters:")
           logger.info(f"--> excel_file: {config_utils.excel_file}")
           logger.info(f"--> break_page_company: {config_utils.break_page_company}")
-          logger.info(f"--> output_folder: {config_utils.output_folder}")
           logger.info(f"--> title: {config_utils.title}")
           logger.info(f"--> subtitle: {config_utils.subtitle}")
           logger.info(f"--> footer: {config_utils.footer}")
@@ -43,14 +46,7 @@ def build_UI_and_GO():
                if config_utils.excel_file == None: 
                     logger.warning(f"No XSLX file selected!")
                else:
-                    build_PDF.build_pdf(
-                         config_utils.excel_file, 
-                         config_utils.output_folder, 
-                         config_utils.break_page_company,
-                         config_utils.title,
-                         config_utils.subtitle,
-                         config_utils.footer
-                         )
+                    build_PDF.build_pdf()
                     messagebox.showinfo("Executed", "Operation complete!")
                     config_utils.save_config()
 
@@ -260,5 +256,16 @@ def build_UI_and_GO():
      #root.resizable(False, False)
 
      root.mainloop()
+
+def check_parameters():
+     check = True
+     if not Path(config_utils.excel_file).exists(): 
+          check = False
+          filedialog.showerror("Error", f"Configured file not found: {config_utils.CONFIG_FILE}")
+     for k, v in config_utils.path_dictionary.items():
+           if not Path(v).exists(): 
+                check = False
+                messagebox.showerror("Error", f"Configured path not found: {k} -> {str(v)}")
+     return check
 
 

@@ -1,5 +1,5 @@
 {
-    "excel_file": "",
+    "excel_file": "E:\\ALMAVIVA\\OneDrive - Almaviva SpA\\Documenti\\Excel2PDFCatalog/example_excel/Product list example.xlsx",
     "break_page_company": true,
     "generate_random_images": false,
     "title": "CHANGE THE TITLE",
@@ -24,7 +24,7 @@
     "PARAGRAPH_TITLE1_COLOR": "#c37225",
     "PARAGRAPH_TITLE2_COLOR": "#000000",
     "PARAGRAPH_COLOR": "#000000",
-    "OUTPUT_PDF_FOLDER_PATH": "E:\\ALMAVIVA\\OneDrive - Almaviva SpA\\Documenti\\Excel2PDFCatalogexample_catalog",
+    "OUTPUT_PDF_FOLDER_PATH": "E:\\ALMAVIVA\\OneDrive - Almaviva SpA\\Documenti\\Excel2PDFCatalog\\example_catalog",
     "PRODUCTS_IMAGES_FOLDER_PATH": "E:\\ALMAVIVA\\OneDrive - Almaviva SpA\\Documenti\\Excel2PDFCatalog\\img_products",
     "GENERAL_IMAGES_FOLDER_PATH": "E:\\ALMAVIVA\\OneDrive - Almaviva SpA\\Documenti\\Excel2PDFCatalog\\img_general",
     "TMP_SYSTEM_FOLDER_PATH": "E:\\ALMAVIVA\\OneDrive - Almaviva SpA\\Documenti\\Excel2PDFCatalog\\tmp"

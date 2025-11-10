@@ -246,23 +246,24 @@ def flush_1x3_row():
 # i parametri:
 # file: Path del file del foglio excel da processare
 # brk: booleano che determina se inserire o meno un salto pagina tra le aziende
-def build_pdf(file_path, folder_path, brk: bool, title, subtitle, footer):
+#def build_pdf(file_path, folder_path, brk: bool, title, subtitle, footer):
+def build_pdf():
     global raw_1x3_counter
     #
     logger.info("Init 'build_pdf'...")
     # file di output 
     formatted_datetime =  datetime.datetime.now().strftime("%Y%m%d_%H%M%S") # Formato Giorno/Mese/Anno
-    pdf_file_name = str(Path(folder_path) / f"{formatted_datetime}_Catalog.pdf")
+    pdf_file_name = f"{config_utils.path_dictionary["OUTPUT_PDF_FOLDER_PATH"]}/{formatted_datetime}_Catalog.pdf"
     #
     doc = BaseDocTemplate(pdf_file_name, pagesize=A4, leftMargin=PAGE_MARGIN, rightMargin=PAGE_MARGIN, topMargin=PAGE_MARGIN, bottomMargin=PAGE_MARGIN, title=None, author=None)
     doc.addPageTemplates([cover_page_template, body_page_template, category_page_template, matrix_3x3_page_template])
     #
-    insert_cover(title, subtitle, footer) 
+    insert_cover(config_utils.title, config_utils.subtitle, config_utils.footer) 
     #
-    insert_body(footer)
+    insert_body(config_utils.footer)
     # leggo il file:
     try:
-        df = pd.read_excel(file_path)
+        df = pd.read_excel(config_utils.excel_file)
     except Exception as e:
         logger.error("FILE EXCEL ERROR!! ", exc_info=True)
         sys.exit
@@ -298,11 +299,11 @@ def build_pdf(file_path, folder_path, brk: bool, title, subtitle, footer):
             story.append(Spacer(1, 5 * cm))
             story.append(Paragraph(r[XLS_CATEGORY], styles['CategoryTitle']))
             story.append(NextPageTemplate('Matrix_3x3'))
-            if brk == False:
+            if config_utils.break_page_company == False:
                 story.append(PageBreak())
         # -----------------------------------------------  
         # ---------- verifico per inserire il titolo del produttore
-        if brk == True:
+        if config_utils.break_page_company == True:
             if previous_company != r[XLS_COMPANY]:
                 if raw_1x3_items[0] != "": 
                     flush_1x3_row() # se ho prodotti residui nella riga, li pubblico
