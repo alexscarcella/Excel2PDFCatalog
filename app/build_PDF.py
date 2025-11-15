@@ -35,6 +35,7 @@ XLS_SIZE = config.get("Excel","XLS_COLUMN_SIZE")
 XLS_PRICE = config.get("Excel","XLS_COLUMN_PRICE")
 XLS_COLUMN_DESCRIPTION = config.get("Excel","XLS_COLUMN_DESCRIPTION")
 XLS_COLUMN_IMG = config.get("Excel","XLS_COLUMN_IMG")
+XLS_BADGE = config.get("Excel","XLS_BADGE")
 #---------------------------------------------------
 # dimensioni foglio 
 PAGE_WIDTH, PAGE_HEIGHT  = A4
@@ -55,7 +56,7 @@ styles.add(ParagraphStyle(name="TableCompanyName", fontName=font_primary, fontSi
 styles.add(ParagraphStyle(name="TableItem", fontName=font_primary, fontSize=11, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["TABLE_ITEM_NAME_COLOR"], spaceAfter=0))
 styles.add(ParagraphStyle(name="TableItemPrice", fontName=font_primary, fontSize=12, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_PRICE_COLOR"], spaceAfter=0))
 styles.add(ParagraphStyle(name="TableItemSize", fontName=font_primary, fontSize=10, alignment=0, textColor=config_utils.colors_dictionary["TABLE_ITEM_SIZE_COLOR"], spaceAfter=0))
-styles.add(ParagraphStyle(name="TableItemNews", fontName=font_primary, fontSize=10, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_NEWS_COLOR"], spaceAfter=0))
+styles.add(ParagraphStyle(name="TableItemBadge", fontName=font_primary, fontSize=10, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_NEWS_COLOR"], spaceAfter=0))
 styles.add(ParagraphStyle(name="ParTitle1", fontName=font_primary, fontSize=30, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE1_COLOR"], spaceAfter=0))
 styles.add(ParagraphStyle(name="ParTitle2", fontName=font_primary, fontSize=20, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE2_COLOR"], spaceAfter=0))
 styles.add(ParagraphStyle(name="Par", fontName=font_primary, fontSize=10, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_COLOR"], spaceAfter=0))
@@ -94,7 +95,7 @@ def body_on_page(canvas, doc):
     canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
     canvas.setFillColor(config_utils.colors_dictionary["PARAGRAPH_COLOR"])
     canvas.setFont(font_primary, 8)
-    canvas.drawString(PAGE_MARGIN, PAGE_HEIGHT - PAGE_MARGIN // 2, 'Sezione 2')
+    canvas.drawString(PAGE_MARGIN, PAGE_HEIGHT - PAGE_MARGIN // 2, 'Section 2')
     canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_MARGIN // 2, f'Pagina {doc.page}')
     canvas.restoreState()
 
@@ -184,9 +185,9 @@ def insert_body(footer):
     # Impostiamo il template Body dalla prossima pagina
     story.append(NextPageTemplate('Body'))
     story.append(PageBreak())
-    story.append(Paragraph('Inizio della sezione testo', styles['ParTitle1']))
+    story.append(Paragraph('Title of the text section', styles['ParTitle1']))
     story.append(Spacer(1, 3 * cm))
-    story.append(Paragraph('Sotto titolo della sezione', styles['ParTitle2']))
+    story.append(Paragraph('Subtitle title of the text section', styles['ParTitle2']))
     story.append(Spacer(1, 1 * cm))
     long_para = (
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum eu lorem eu enim congue porta a a lacus. "
@@ -213,7 +214,7 @@ def build_TableOfContents():
     toc.levelStyles = [
         styles['CategoryTitle']
     ]
-    story.append(Paragraph("Sommario", styles['Heading1']))
+    story.append(Paragraph("Summary", styles['Heading1']))
     story.append(toc)
     story.append(PageBreak())
 
@@ -280,8 +281,11 @@ def build_pdf():
         if (r[XLS_COMPANY] == "" or pd.isna(r[XLS_COMPANY])):
             logger.warning(f"{r[XLS_ITEM]} - XLS_COMPANY not defined")
             r[XLS_COMPANY] = "--------"
+        if (r[XLS_BADGE] == "" or pd.isna(r[XLS_BADGE])):
+            logger.warning(f"{r[XLS_ITEM]} - XLS_BADGE not defined")
+            r[XLS_BADGE] = ""
         try:
-            formatted_price=f"€ {float(r[XLS_PRICE])}"
+            formatted_price=f"€ {float(r[XLS_PRICE]):.2f}"
         except:
             formatted_price = 0
             logger.warning(f"{r[XLS_ITEM]} - XLS_PRICE not defined")
@@ -291,33 +295,31 @@ def build_pdf():
             if raw_1x3_items[0] != "": 
                 flush_1x3_row() # se ho prodotti residui nella riga, li pubblico 
             #
-            story.append(NextPageTemplate('Category'))
-            story.append(PageBreak())
-            previous_category = r[XLS_CATEGORY]
-            previous_company=""
+            story.append(NextPageTemplate('Category')) # scelgo il nuovo template
+            story.append(PageBreak()) # forzo il cambio pagina
+            previous_category = r[XLS_CATEGORY] # aggiorno la variabile di controllo della categoria
+            previous_company="" # resetto la variabile di controllo della company
             logger.info(f"Category: {r[XLS_CATEGORY]}")
             story.append(Spacer(1, 5 * cm))
             story.append(Paragraph(r[XLS_CATEGORY], styles['CategoryTitle']))
-            story.append(NextPageTemplate('Matrix_3x3'))
+            story.append(NextPageTemplate('Matrix_3x3')) #scelgo il template per i prodotti
             if config_utils.break_page_company == False:
                 story.append(PageBreak())
         # -----------------------------------------------  
         # ---------- verifico per inserire il titolo del produttore
         if config_utils.break_page_company == True:
-            if previous_company != r[XLS_COMPANY]:
+            if previous_company != r[XLS_COMPANY]: # se l'azienda è diversa dalla precedente, cambio pagine tra le aziende
                 if raw_1x3_items[0] != "": 
                     flush_1x3_row() # se ho prodotti residui nella riga, li pubblico
-                #
                 story.append(PageBreak())
                 previous_company = r[XLS_COMPANY]
                 logger.info(f"     Company: {r[XLS_COMPANY]}")
                 story.append(Paragraph(r[XLS_COMPANY], styles['CompanyTitle']))
                 story.append(Spacer(1, 6*cm))
         else:
-            if previous_company != r[XLS_COMPANY]:
+            if previous_company != r[XLS_COMPANY]: # se l'azienda è diversa dalla precedente, vado a capo ma non cambio pagina
                 if raw_1x3_items[0] != "": 
                     flush_1x3_row() # se ho prodotti residui nella riga, li pubblico
-                #
                 previous_company = r[XLS_COMPANY]
                 logger.info(f"     Company: {r[XLS_COMPANY]}")
 
@@ -335,12 +337,12 @@ def build_pdf():
                 img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
         except:
             logger.error("Product image not founded! ", exc_info=True)
-
         
         formatted_company = f"<b><i>{r[XLS_COMPANY]}</i></b>"
         formatted_item = f"<b>{r[XLS_ITEM]}</b>"
-        
         formatted_size=f"{r[XLS_SIZE]}"
+        formatted_badge=f"{r[XLS_BADGE]}"
+        
         info = [
             [img,""],
             [Paragraph(formatted_company, styles['TableCompanyName']),""],
@@ -371,14 +373,9 @@ def build_pdf():
         logger.info(f"            {r[XLS_CATEGORY]} - {r[XLS_COMPANY]} - {r[XLS_ITEM]} - {r[XLS_SIZE]} - OK")
         
         # inserisco una tabella più grande, che contenga la scheda
-        # ed abbia una prima riga per inserire le info, tipo "NOVITà"
-        numero = random.randint(1, 5)
-        if numero<2:
-            formatted_news = f"<b>novità!</b>"
-        else:
-            formatted_news = ""
+        # ed abbia una prima riga per inserire il badge, tipo "NOVITà"
         table_item_big_info = [
-            [Paragraph(formatted_news, styles['TableItemNews'])],   # riga 1
+            [Paragraph(formatted_badge, styles['TableItemBadge'])],   # riga 1
             [table_item]                                            # riga 2
             ]
         table_item_big=Table(table_item_big_info, rowHeights=[0.3*cm, None])
