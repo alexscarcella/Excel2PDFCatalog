@@ -1,0 +1,225 @@
+name: Build Excel2PDFCatalog
+
+on:
+  workflow_dispatch:  # Build manuale - clicca "Run workflow" su GitHub
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+      create_release:
+        description: 'Create GitHub Release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform_name: Windows
+            artifact_name: Excel2PDFCatalog-Windows
+          - os: macos-latest
+            platform_name: macOS
+            artifact_name: Excel2PDFCatalog-macOS
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r app/requirements.txt
+        pip install pyinstaller
+    
+    - name: Build Windows executable
+      if: runner.os == 'Windows'
+      run: |
+        pyinstaller --onefile --windowed `
+          --name Excel2PDFCatalog `
+          --add-data "app;app" `
+          --add-data "fonts;fonts" `
+          --add-data "img_general;img_general" `
+          --add-data "example_excel;example_excel" `
+          --add-data "Excel2PDFCatalog.config;." `
+          --hidden-import=openpyxl `
+          --hidden-import=pandas `
+          --hidden-import=reportlab `
+          --hidden-import=PIL `
+          --collect-all reportlab `
+          Excel2PDFCatalog.py
+    
+    - name: Build macOS application
+      if: runner.os == 'macOS'
+      run: |
+        pyinstaller --onefile --windowed \
+          --name Excel2PDFCatalog \
+          --add-data "app:app" \
+          --add-data "fonts:fonts" \
+          --add-data "img_general:img_general" \
+          --add-data "example_excel:example_excel" \
+          --add-data "Excel2PDFCatalog.config:." \
+          --hidden-import=openpyxl \
+          --hidden-import=pandas \
+          --hidden-import=reportlab \
+          --hidden-import=PIL \
+          --collect-all reportlab \
+          Excel2PDFCatalog.py
+    
+    - name: Create Windows ZIP package
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        # Crea cartella per il package
+        New-Item -ItemType Directory -Force -Path package
+        
+        # Copia l'eseguibile
+        Copy-Item "dist\Excel2PDFCatalog.exe" -Destination "package\"
+        
+        # Copia le cartelle necessarie
+        Copy-Item "fonts" -Destination "package\fonts" -Recurse -Force
+        Copy-Item "img_general" -Destination "package\img_general" -Recurse -Force
+        Copy-Item "example_excel" -Destination "package\example_excel" -Recurse -Force
+        Copy-Item "example_catalog" -Destination "package\example_catalog" -Recurse -Force
+        Copy-Item "Excel2PDFCatalog.config" -Destination "package\"
+        
+        # Crea README
+        $readme = @"
+        Excel2PDFCatalog v${{ github.event.inputs.version }} - Windows
+        
+        INSTALLATION:
+        1. Extract all files to a folder
+        2. Run Excel2PDFCatalog.exe
+        
+        USAGE:
+        - Select your Excel file
+        - Choose image folders
+        - Set output folder
+        - Click 'Go' to generate PDF catalog
+        
+        For more information visit:
+        https://github.com/alexscarcella/Excel2PDFCatalog
+        "@
+        
+        $readme | Out-File -FilePath "package\README.txt" -Encoding UTF8
+        
+        # Crea ZIP
+        Compress-Archive -Path "package\*" -DestinationPath "Excel2PDFCatalog-Windows-v${{ github.event.inputs.version }}.zip"
+    
+    - name: Create macOS DMG package
+      if: runner.os == 'macOS'
+      run: |
+        # Installa create-dmg
+        brew install create-dmg
+        
+        # Crea cartella per il package
+        mkdir -p package
+        cp -r "dist/Excel2PDFCatalog.app" package/
+        cp -r fonts package/
+        cp -r img_general package/
+        cp -r example_excel package/
+        cp -r example_catalog package/
+        cp Excel2PDFCatalog.config package/
+        
+        # Crea README
+        cat > package/README.txt << EOF
+        Excel2PDFCatalog v${{ github.event.inputs.version }} - macOS
+        
+        INSTALLATION:
+        1. Copy Excel2PDFCatalog.app to Applications folder
+        2. First launch: Right-click → Open (to bypass Gatekeeper)
+        
+        USAGE:
+        - Select your Excel file
+        - Choose image folders
+        - Set output folder
+        - Click 'Go' to generate PDF catalog
+        
+        For more information visit:
+        https://github.com/alexscarcella/Excel2PDFCatalog
+        EOF
+        
+        # Crea DMG
+        create-dmg \
+          --volname "Excel2PDFCatalog Installer" \
+          --window-pos 200 120 \
+          --window-size 800 400 \
+          --icon-size 100 \
+          --icon "Excel2PDFCatalog.app" 200 190 \
+          --hide-extension "Excel2PDFCatalog.app" \
+          --app-drop-link 600 185 \
+          "Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.dmg" \
+          "package/" || true
+        
+        # Fallback: se create-dmg fallisce, crea un ZIP
+        if [ ! -f "Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.dmg" ]; then
+          echo "DMG creation failed, creating ZIP instead"
+          cd package
+          zip -r "../Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.zip" .
+          cd ..
+        fi
+    
+    - name: Upload Windows artifact
+      if: runner.os == 'Windows'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}-v${{ github.event.inputs.version }}
+        path: Excel2PDFCatalog-Windows-v${{ github.event.inputs.version }}.zip
+        retention-days: 90
+    
+    - name: Upload macOS artifact
+      if: runner.os == 'macOS'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}-v${{ github.event.inputs.version }}
+        path: |
+          Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.dmg
+          Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.zip
+        retention-days: 90
+    
+    - name: Upload to Release
+      if: github.event.inputs.create_release == 'true'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.event.inputs.version }}
+        name: Excel2PDFCatalog v${{ github.event.inputs.version }}
+        draft: false
+        prerelease: false
+        files: |
+          Excel2PDFCatalog-Windows-v${{ github.event.inputs.version }}.zip
+          Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.dmg
+          Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.zip
+        body: |
+          ## Excel2PDFCatalog v${{ github.event.inputs.version }}
+          
+          Create PDF product catalogs from Excel files with ease!
+          
+          ### Downloads:
+          - **Windows**: Excel2PDFCatalog-Windows-v${{ github.event.inputs.version }}.zip
+          - **macOS**: Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.dmg
+          
+          ### What's included:
+          - Standalone executable (no Python installation needed)
+          - Example Excel files
+          - Sample catalog outputs
+          - Fonts and assets
+          - Configuration file
+          
+          ### Installation:
+          **Windows**: Extract ZIP and run Excel2PDFCatalog.exe
+          **macOS**: Mount DMG and copy to Applications
+          
+          For documentation visit: https://github.com/alexscarcella/Excel2PDFCatalog
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

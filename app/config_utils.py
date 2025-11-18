@@ -50,6 +50,12 @@ path_dictionary = {
     "TMP_SYSTEM_FOLDER_PATH": Path(f"{os.getcwd()}/tmp/")
 }
 
+flags_dictionary = {
+    "BREAK_PAGE_COMPANY": False,
+    "ADD_PRODUCT_DESCRIPTION": True,
+    "GENERATE_RANDOM_PRODUCTS_IMAGE": False
+}
+
 # [Colors defaults]
 # COVER_TITLE = #ffffff
 # COVER_SUBTITLE = #ffffff

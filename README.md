@@ -3,20 +3,27 @@
 Excel2PDFCatalog is a Python tool that reads product/catalog data from an Excel file and generates one PDF catalog. It provides a minimal UI to select the Excel file and image folders and a PDF builder that composes pages from rows and linked images.
 
 ## Purpose
-Provide a fast, editable pipeline to generate printable/catalog PDFs from spreadsheet data and image folders. Intended for internal use and easy adaptation to different Excel layouts and output requirements.
+Excel2PDFCatalog is a lightweight utility designed to **convert Excel spreadsheets into well-formatted PDF catalogs**.  
+It is particularly useful for businesses, shops, or individuals who need to quickly generate printable product catalogs from structured Excel data.
 
 ## ✨ Key Features
+- 📊 **Excel to PDF conversion**: Transform tabular data into a clean, professional PDF layout.
+- 🖼️ **Image support**: Include product images referenced in your Excel file.
+- 🎨 **Customizable layout**: Adjust fonts, colors, and formatting to match your branding.
+- ⚡ **Fast and simple**: Minimal setup required, just point to your Excel file and generate.
+- 🛠️ **Cross-platform**: Works on Windows, macOS, and Linux (Python-based).
+
+## ✨ Other Features
 - Excel import: reads Excel files via ***pandas/openpyxl*** with support for common Excel formats and multiple sheets.
 - Column-to-field mapping: configurable mapping between Excel columns and product fields (title, description, price, image references).
 - UI-driven workflow:
   - File pickers for Excel file, one or more image folders, and output folder.
   - Controls to load/save runtime configuration (***app/config.json***).
-  - Simple "Go" button to start PDF generation and a console/log area showing progress and errors.
+  - Simple "Go" button to start PDF generation and a log  showing progress and errors.
 - PDF generation:
   - Uses reportlab to layout pages and render text and images.
   - Supports multiple images per product (searches configured image folders).
   - Image resizing and placement logic to fit images into product frames.
-  - Customizable fonts (fonts/ folder) and basic styling via configuration.
 - Config files:
   - ***app/config.json*** — runtime defaults (paths, page settings, logging).
   - ***Excel2PDFCatalog.config*** — project-specific mapping and rules for interpreting Excel rows.
@@ -55,8 +62,6 @@ python Excel2PDFCatalog.py
 ``app/config.json`` → to set default folders, page size, and other runtime options.
 
 ``Excel2PDFCatalog.config`` → to change column mappings and product-level rules.
-
-Edit these files to match your Excel layout, image folder structure, and output preferences.
 
 📂 Project Structure
 
