@@ -70,7 +70,7 @@ jobs:
           --add-data "app:app" \
           --add-data "fonts:fonts" \
           --add-data "logs:logs" \
-          --add-data "img_products:img_products" `\
+          --add-data "img_products:img_products" \
           --add-data "img_general:img_general" \
           --add-data "example_excel:example_excel" \
           --add-data "Excel2PDFCatalog.config:." \
