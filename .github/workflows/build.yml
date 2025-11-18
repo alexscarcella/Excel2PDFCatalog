@@ -69,7 +69,7 @@ jobs:
           --name Excel2PDFCatalog \
           --add-data "app:app" \
           --add-data "fonts:fonts" \
-          --add-data "logs;logs" \
+          --add-data "logs:logs" \
           --add-data "img_products;img_products" `\
           --add-data "img_general:img_general" \
           --add-data "example_excel:example_excel" \
@@ -97,6 +97,7 @@ jobs:
         Copy-Item "example_excel" -Destination "package\example_excel" -Recurse -Force
         Copy-Item "example_catalog" -Destination "package\example_catalog" -Recurse -Force
         Copy-Item "img_products" -Destination "package\img_products" -Recurse -Force
+        Copy-Item "logs" -Destination "package\logs" -Recurse -Force
         Copy-Item "Excel2PDFCatalog.config" -Destination "package\"
         
         # Crea README
