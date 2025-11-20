@@ -55,6 +55,7 @@ jobs:
           --add-data "img_general;img_general" `
           --add-data "example_excel;example_excel" `
           --add-data "Excel2PDFCatalog.config;." `
+          --add-data "config.json;." `
           --hidden-import=openpyxl `
           --hidden-import=pandas `
           --hidden-import=reportlab `
@@ -74,6 +75,7 @@ jobs:
           --add-data "img_general:img_general" \
           --add-data "example_excel:example_excel" \
           --add-data "Excel2PDFCatalog.config:." \
+          --add-data "config.json:." \
           --hidden-import=openpyxl \
           --hidden-import=pandas \
           --hidden-import=reportlab \
@@ -99,6 +101,7 @@ jobs:
         Copy-Item "img_products" -Destination "package\img_products" -Recurse -Force
         Copy-Item "logs" -Destination "package\logs" -Recurse -Force
         Copy-Item "Excel2PDFCatalog.config" -Destination "package\"
+        Copy-Item "config.json" -Destination "package\"
         
         # Crea README
         $readme = @"
@@ -139,6 +142,7 @@ jobs:
         cp -r logs package/
         cp -r example_catalog package/
         cp Excel2PDFCatalog.config package/
+        cp config.json package/
         
         # Crea README
         cat > package/README.txt << EOF

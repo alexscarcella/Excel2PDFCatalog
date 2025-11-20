@@ -77,7 +77,7 @@ flags_dictionary = {
 # PARAGRAPH_TITLE2 = #000000
 # PARAGRAPH = #000000
 
-CONFIG_FILE = './app/config.json'
+CONFIG_FILE = 'config.json'
 
 def load_config():
     global excel_file, break_page_company, title, subtitle, footer, generate_random_images
