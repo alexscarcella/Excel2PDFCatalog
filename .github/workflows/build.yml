@@ -1,7 +1,7 @@
 name: Build Excel2PDFCatalog
 
 on:
-  workflow_dispatch:  # Build manuale - clicca "Run workflow" su GitHub
+  workflow_dispatch:
     inputs:
       version:
         description: 'Version number (e.g., 1.0.0)'
@@ -13,7 +13,6 @@ on:
         type: boolean
         default: false
 
-# AGGIUNGI QUESTA SEZIONE
 permissions:
   contents: write
 
@@ -25,9 +24,15 @@ jobs:
           - os: windows-latest
             platform_name: Windows
             artifact_name: Excel2PDFCatalog-Windows
+            arch_suffix: ""
+          - os: macos-13
+            platform_name: macOS-Intel
+            artifact_name: Excel2PDFCatalog-macOS-Intel
+            arch_suffix: "-Intel"
           - os: macos-latest
-            platform_name: macOS
-            artifact_name: Excel2PDFCatalog-macOS
+            platform_name: macOS-AppleSilicon
+            artifact_name: Excel2PDFCatalog-macOS-AppleSilicon
+            arch_suffix: "-AppleSilicon"
     
     runs-on: ${{ matrix.os }}
     
@@ -69,14 +74,8 @@ jobs:
     - name: Build macOS application
       if: runner.os == 'macOS'
       run: |
-        # Installa dipendenze per entrambe le architetture
-        pip install --upgrade pip
-        pip install -r app/requirements.txt
-        pip install pyinstaller
-
         pyinstaller --onefile --windowed \
           --name Excel2PDFCatalog \
-          --target-architecture universal2 \
           --add-data "app:app" \
           --add-data "fonts:fonts" \
           --add-data "logs:logs" \
@@ -167,7 +166,7 @@ jobs:
         
         # Crea README
         cat > package/README.txt << EOF
-        Excel2PDFCatalog v${{ github.event.inputs.version }} - macOS
+        Excel2PDFCatalog v${{ github.event.inputs.version }} - ${{ matrix.platform_name }}
         
         INSTALLATION:
         1. Copy Excel2PDFCatalog.app to Applications folder
@@ -192,14 +191,14 @@ jobs:
           --icon "Excel2PDFCatalog.app" 200 190 \
           --hide-extension "Excel2PDFCatalog.app" \
           --app-drop-link 600 185 \
-          "Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.dmg" \
+          "Excel2PDFCatalog-macOS${{ matrix.arch_suffix }}-v${{ github.event.inputs.version }}.dmg" \
           "package/" || true
         
         # Fallback: se create-dmg fallisce, crea un ZIP
-        if [ ! -f "Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.dmg" ]; then
+        if [ ! -f "Excel2PDFCatalog-macOS${{ matrix.arch_suffix }}-v${{ github.event.inputs.version }}.dmg" ]; then
           echo "DMG creation failed, creating ZIP instead"
           cd package
-          zip -r "../Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.zip" .
+          zip -r "../Excel2PDFCatalog-macOS${{ matrix.arch_suffix }}-v${{ github.event.inputs.version }}.zip" .
           cd ..
         fi
     
@@ -217,8 +216,8 @@ jobs:
       with:
         name: ${{ matrix.artifact_name }}-v${{ github.event.inputs.version }}
         path: |
-          Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.dmg
-          Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.zip
+          Excel2PDFCatalog-macOS${{ matrix.arch_suffix }}-v${{ github.event.inputs.version }}.dmg
+          Excel2PDFCatalog-macOS${{ matrix.arch_suffix }}-v${{ github.event.inputs.version }}.zip
         retention-days: 90
     
     - name: Upload to Release
@@ -231,8 +230,8 @@ jobs:
         prerelease: false
         files: |
           Excel2PDFCatalog-Windows-v${{ github.event.inputs.version }}.zip
-          Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.dmg
-          Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.zip
+          Excel2PDFCatalog-macOS${{ matrix.arch_suffix }}-v${{ github.event.inputs.version }}.dmg
+          Excel2PDFCatalog-macOS${{ matrix.arch_suffix }}-v${{ github.event.inputs.version }}.zip
         body: |
           ## Excel2PDFCatalog v${{ github.event.inputs.version }}
           
@@ -240,7 +239,8 @@ jobs:
           
           ### Downloads:
           - **Windows**: Excel2PDFCatalog-Windows-v${{ github.event.inputs.version }}.zip
-          - **macOS**: Excel2PDFCatalog-macOS-v${{ github.event.inputs.version }}.dmg
+          - **macOS Apple Silicon (M1/M2/M3)**: Excel2PDFCatalog-macOS-AppleSilicon-v${{ github.event.inputs.version }}.dmg
+          - **macOS Intel**: Excel2PDFCatalog-macOS-Intel-v${{ github.event.inputs.version }}.dmg
           
           ### What's included:
           - Standalone executable (no Python installation needed)
@@ -252,6 +252,10 @@ jobs:
           ### Installation:
           **Windows**: Extract ZIP and run Excel2PDFCatalog.exe
           **macOS**: Mount DMG and copy to Applications
+          
+          ### Which macOS version to download?
+          - **Apple Silicon**: For Macs with M1, M2, M3, or M4 chips (2020 and newer)
+          - **Intel**: For older Macs with Intel processors
           
           For documentation visit: https://github.com/alexscarcella/Excel2PDFCatalog
       env:
