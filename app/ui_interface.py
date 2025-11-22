@@ -186,7 +186,7 @@ def build_UI_and_GO():
                chk_var = tk.BooleanVar(value=False)
           chk = tk.Checkbutton(
                frame_options, 
-               text=f"{k.replace('_',' ').capitalize()}", 
+               text=f"{k.replace('_',' ').capitalize()} (not yet working)", 
                variable=chk_var, 
                command=lambda key=k, var=chk_var: config_utils.flags_dictionary.update({key: var.get()})
                )
