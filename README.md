@@ -60,6 +60,7 @@ python Excel2PDFCatalog.py
 ## ⚙️ Configuration
 
 ``config.json`` → to set default folders, page size, and other runtime options. It's possibile to change this parameters via graphic user interface.
+
 ``Excel2PDFCatalog.config`` → to change column mappings and product-level rules.
 
 📂 Project Structure
