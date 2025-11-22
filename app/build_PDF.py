@@ -254,7 +254,7 @@ def build_pdf():
     logger.info("Init 'build_pdf'...")
     # file di output 
     formatted_datetime =  datetime.datetime.now().strftime("%Y%m%d_%H%M%S") # Formato Giorno/Mese/Anno
-    pdf_file_name = f"{config_utils.path_dictionary["OUTPUT_PDF_FOLDER_PATH"]}/{formatted_datetime}_Catalog.pdf"
+    pdf_file_name = f"{config_utils.path_dictionary['OUTPUT_PDF_FOLDER_PATH']}/{formatted_datetime}_Catalog.pdf"
     #
     doc = BaseDocTemplate(pdf_file_name, pagesize=A4, leftMargin=PAGE_MARGIN, rightMargin=PAGE_MARGIN, topMargin=PAGE_MARGIN, bottomMargin=PAGE_MARGIN, title=None, author=None)
     doc.addPageTemplates([cover_page_template, body_page_template, category_page_template, matrix_3x3_page_template])
@@ -327,7 +327,7 @@ def build_pdf():
         # --------- Leggo le informazioni del singolo prodotto
         IMAGE_SIZE = 4.4 * cm
         try:
-            img_file_path = f"./{config_utils.path_dictionary["PRODUCTS_IMAGES_FOLDER_PATH"]}/{r[XLS_COLUMN_IMG]}.png"
+            img_file_path = f"./{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/{r[XLS_COLUMN_IMG]}.png"
             if os.path.exists(img_file_path):
                 img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
             else:        
