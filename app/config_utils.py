@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from app.logger import logger
 
-__version__ = "0.3"
+__version__ = "0.4.1"
 
 # valori di default che poi vengono sovrascritti
 # dal file di configurazione JSON
