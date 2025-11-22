@@ -101,7 +101,6 @@ jobs:
         Copy-Item "img_products" -Destination "package\img_products" -Recurse -Force
         Copy-Item "logs" -Destination "package\logs" -Recurse -Force
         Copy-Item "Excel2PDFCatalog.config" -Destination "package\"
-        Copy-Item "config.json" -Destination "package\"
 
         # Rimuovi tutti i file .gitignore e altri files inutili
         Get-ChildItem -Path "package" -Recurse -Include ".gitignore", ".DS_Store", ".gitkeep", "*.pyc", "__pycache__" | Remove-Item -Force -Recurse
@@ -144,7 +143,6 @@ jobs:
         cp -r img_products package/
         cp -r logs package/
         cp -r example_catalog package/
-        cp config.json package/
         cp Excel2PDFCatalog.config package/
         
         # Rimuovi tutti i file .gitignore e altri files inutili
