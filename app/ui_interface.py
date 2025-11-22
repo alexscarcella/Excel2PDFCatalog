@@ -215,7 +215,7 @@ def build_UI_and_GO():
           # senza i parametri di default, tutti i bottoni finirebbero per usare l’ultimo valore di "k".
           entry_color.bind("<KeyRelease>",lambda event, c=k, e=entry_color, v=cvs_color: update_color(c, e, v))
           entry_color.grid(row=grid_row, column=1, sticky="e", padx=FRAME_PADDING)
-          bt = tk.Button(frame_colors, text=f"{k.replace("_"," ").capitalize()}", width=30, command=lambda c=k, e=entry_color, v=cvs_color: choose_color(c, e, v))
+          bt = tk.Button(frame_colors, text=f"{k.replace('_',' ').capitalize()}", width=30, command=lambda c=k, e=entry_color, v=cvs_color: choose_color(c, e, v))
           bt.grid(row=grid_row, column=2, pady=0, sticky="w")
           grid_row= grid_row + 1
 
@@ -239,7 +239,7 @@ def build_UI_and_GO():
      # ---------------frame dx - path ---------------------------------------
      # ----------------------------------------------------------------------
      for k, v in config_utils.path_dictionary.items():
-          tk.Label(frame_right, text=f"{k.replace("_"," ").capitalize()}:", anchor="nw", justify=tk.LEFT, borderwidth=0, relief="solid").grid(row=grid_row, column=0, sticky="w", columnspan=2)
+          tk.Label(frame_right, text=f"{k.replace('_',' ').capitalize()}:", anchor="nw", justify=tk.LEFT, borderwidth=0, relief="solid").grid(row=grid_row, column=0, sticky="w", columnspan=2)
           grid_row= grid_row + 1
           folder_label = tk.Label(frame_right, text=f"{str(v)}", fg="blue", justify=tk.LEFT, wraplength=400, borderwidth=0, relief="solid")
           folder_label.grid(row=grid_row, column=1, sticky="w", padx=FRAME_PADDING)

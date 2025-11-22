@@ -102,6 +102,10 @@ jobs:
         Copy-Item "logs" -Destination "package\logs" -Recurse -Force
         Copy-Item "Excel2PDFCatalog.config" -Destination "package\"
         Copy-Item "config.json" -Destination "package\"
+
+        # Rimuovi tutti i file .gitignore e altri files inutili
+        Get-ChildItem -Path "package" -Recurse -Filter ".gitignore" | Remove-Item -Force
+        Get-ChildItem -Path "package" -Recurse -Include ".gitignore", ".DS_Store", "*.pyc", "__pycache__" | Remove-Item -Force -Recurse
         
         # Crea README
         $readme = @"
@@ -124,7 +128,7 @@ jobs:
         $readme | Out-File -FilePath "package\README.txt" -Encoding UTF8
         
         # Crea ZIP
-        Compress-Archive -Path "package\*" -DestinationPath "Excel2PDFCatalog-Windows-v${{ github.event.inputs.version }}.zip"
+        Compress-Archive -Path "package\*" -DestinationPath "Excel2PDFCatalog-Windows-v${{ github.event.inputs.version }}.zip" -Force
     
     - name: Create macOS DMG package
       if: runner.os == 'macOS'
@@ -141,8 +145,15 @@ jobs:
         cp -r img_products package/
         cp -r logs package/
         cp -r example_catalog package/
-        cp Excel2PDFCatalog.config package/
         cp config.json package/
+        cp Excel2PDFCatalog.config package/
+        
+        # Rimuovi tutti i file .gitignore e altri files inutili
+        find package -name ".gitignore" -type f -delete
+        find package -name ".gitignore" -type f -delete
+        find package -name ".DS_Store" -type f -delete
+        find package -name "*.pyc" -type f -delete
+        find package -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
         
         # Crea README
         cat > package/README.txt << EOF
