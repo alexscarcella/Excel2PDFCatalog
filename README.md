@@ -25,7 +25,7 @@ It is particularly useful for businesses, shops, or individuals who need to quic
   - Supports multiple images per product (searches configured image folders).
   - Image resizing and placement logic to fit images into product frames.
 - Config files:
-  - ***app/config.json*** — runtime defaults (paths, page settings, logging).
+  - ***app/config.json*** — runtime parameters (paths, page settings, logging). Generated at runtime.
   - ***Excel2PDFCatalog.config*** — project-specific mapping and rules for interpreting Excel rows.
 - Error handling & logging: console output and log messages for missing images, parsing errors, and generation steps.
 - Examples & assets:
@@ -78,8 +78,8 @@ Excel2PDFCatalog/
 ├── example_excel/             # Example Excel files
 ├── example_catalog/           # Example PDF catalogs
 └── fonts/                     # Custom fonts
-└── config.json 
-└── Excel2PDFCatalog.config 
+└── config.json                # Catalogue parameters (generated after the first run)
+└── Excel2PDFCatalog.config    # Excel columns mapping and other parameters
 ```
 
 ## ▶️ Usage
