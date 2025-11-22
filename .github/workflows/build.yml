@@ -69,8 +69,14 @@ jobs:
     - name: Build macOS application
       if: runner.os == 'macOS'
       run: |
+        # Installa dipendenze per entrambe le architetture
+        pip install --upgrade pip
+        pip install -r app/requirements.txt
+        pip install pyinstaller
+
         pyinstaller --onefile --windowed \
           --name Excel2PDFCatalog \
+          --target-architecture universal2 \
           --add-data "app:app" \
           --add-data "fonts:fonts" \
           --add-data "logs:logs" \
@@ -84,6 +90,11 @@ jobs:
           --hidden-import=PIL \
           --collect-all reportlab \
           Excel2PDFCatalog.py
+
+        # Fix permessi e firma
+        chmod +x "dist/Excel2PDFCatalog.app/Contents/MacOS/Excel2PDFCatalog"
+        xattr -cr "dist/Excel2PDFCatalog.app"
+        codesign --force --deep --sign - "dist/Excel2PDFCatalog.app"
     
     - name: Create Windows ZIP package
       if: runner.os == 'Windows'
