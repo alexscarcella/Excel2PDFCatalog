@@ -34,7 +34,7 @@ It is particularly useful for businesses, shops, or individuals who need to quic
 
 ## 🛠️ Requirements
 
-- **Python 3.8+**
+- **Python 3.11+**
 - Dependencies listed in app/requirements.txt (notably: reportlab, pillow, pandas, openpyxl)
 
 ## 🚀 Installation & Run (Windows)

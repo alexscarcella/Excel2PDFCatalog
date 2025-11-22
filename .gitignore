@@ -9,7 +9,6 @@ app.log*
 Thumbs.db
 .vscode/
 .idea/
-app/config.json
 
 # -------------------------
 # Python build / cache
@@ -46,6 +45,7 @@ tmp/
 /*.xlsx
 /*.pdf
 _PAOLO/
+config.json
 
 # -------------------------
 # Git

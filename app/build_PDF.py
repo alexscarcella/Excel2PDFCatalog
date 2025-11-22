@@ -79,7 +79,7 @@ def cover_on_page(canvas, doc):
     canvas.saveState()
     canvas.setFillColor(config_utils.colors_dictionary["COVER_BACKGROUND_COLOR"])
     canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
-    # img_logo_path = f"./{config_utils.path_dictionary["GENERAL_IMAGES_FOLDER_PATH"]}/logo.png"
+    # img_logo_path = f"./{config_utils.path_dictionary['GENERAL_IMAGES_FOLDER_PATH']}/logo.png"
     img_logo_path = os.path.join(f"{config_utils.path_dictionary['GENERAL_IMAGES_FOLDER_PATH']}", "logo.png")
     if Path(img_logo_path).exists():
         logger.info(f"Load LOGO image: {img_logo_path} - 13x13")
