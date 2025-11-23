@@ -99,10 +99,15 @@ def load_config():
                 for k, v in colors_dictionary.items():
                     colors_dictionary[k] = config[k]
                     logger.info(f"{v} -> {k}")
-
+                #
                 # paths
                 for k, v in path_dictionary.items():
                     path_dictionary[k] = Path(config[k])
+                    logger.info(f"{str(v)} -> {k}")
+                #
+                # flags
+                for k, v in flags_dictionary.items():
+                    flags_dictionary[k] = eval(config[k])
                     logger.info(f"{str(v)} -> {k}")
             except:
                 logger.error("JSON Config file error", exc_info=True)
@@ -131,6 +136,10 @@ def save_config():
             logger.info(f"{k} -> {v}")
         #paths
         for k, v in path_dictionary.items():
+            config[f"{k}"] = str(v)
+            logger.info(f"{k} -> {str(v)}")
+        #flags
+        for k, v in flags_dictionary.items():
             config[f"{k}"] = str(v)
             logger.info(f"{k} -> {str(v)}")
 

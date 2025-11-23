@@ -173,17 +173,15 @@ def build_UI_and_GO():
      # Separator orizzontale
      separator = ttk.Separator(frame_options, orient='horizontal')  # oppure 'vertical'
      separator.grid(row=grid_row, column=0, columnspan=2, sticky="ew", padx=FRAME_PADDING, pady=FRAME_PADDING)
-
-
-     # checkboxes
+     # ----------------------------------------------------------------------
+     # -------------- checkboxes --------------------------------------------
+     # ----------------------------------------------------------------------
      grid_row= grid_row + 1
      tk.Label(frame_options, text="OPTIONS:").grid(row=grid_row, column=0, sticky="w", columnspan=2)
      grid_row= grid_row + 1
      for k, v in config_utils.flags_dictionary.items():
-          if v == True:
-               chk_var = tk.BooleanVar(value=True)
-          else:
-               chk_var = tk.BooleanVar(value=False)
+          if v == True: chk_var = tk.BooleanVar(value=True)
+          if v == False: chk_var = tk.BooleanVar(value=False)
           chk = tk.Checkbutton(
                frame_options, 
                text=f"{k.replace('_',' ').capitalize()}", 
