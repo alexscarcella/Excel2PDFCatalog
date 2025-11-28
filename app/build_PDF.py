@@ -303,11 +303,11 @@ def build_pdf():
             story.append(Spacer(1, 5 * cm))
             story.append(Paragraph(r[XLS_CATEGORY], styles['CategoryTitle']))
             story.append(NextPageTemplate('Matrix_3x3')) #scelgo il template per i prodotti
-            if config_utils.break_page_company == False:
+            if config_utils.flags_dictionary["BREAK_PAGE_COMPANY"] == False:
                 story.append(PageBreak())
         # -----------------------------------------------  
         # ---------- verifico per inserire il titolo del produttore
-        if config_utils.break_page_company == True:
+        if config_utils.flags_dictionary["BREAK_PAGE_COMPANY"] == True:
             if previous_company != r[XLS_COMPANY]: # se l'azienda è diversa dalla precedente, cambio pagine tra le aziende
                 if raw_1x3_items[0] != "": 
                     flush_1x3_row() # se ho prodotti residui nella riga, li pubblico
@@ -325,16 +325,24 @@ def build_pdf():
 
         # ------------------------------------------------------  
         # --------- Leggo le informazioni del singolo prodotto
+        # gestisco le immagini del prodotto:
         IMAGE_SIZE = 4.4 * cm
+        img = None
         try:
-            img_file_path = f"./{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/{r[XLS_COLUMN_IMG]}.png"
+            img_file_path = f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/{r[XLS_COLUMN_IMG]}.png"
             if os.path.exists(img_file_path):
-                img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
-            else:        
+                logger.warning(f"Product image founded! {img_file_path}")
+                img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)  
+            elif config_utils.flags_dictionary["GENERATE_RANDOM_PRODUCTS_IMAGE"] == True:   
                 img_file_path = f"./tmp/{r[XLS_COLUMN_IMG]}.png"
                 logger.warning(f"Product image not founded! Build new file... {img_file_path}")
                 generate_image(800, 20, img_file_path)
                 img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
+            else:
+                img_file_path = f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/default.png"
+                if os.path.exists(img_file_path):
+                    logger.warning(f"Product image not founded! Load default image: {img_file_path}")
+                    img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)  
         except:
             logger.error("Product image not founded! ", exc_info=True)
         
