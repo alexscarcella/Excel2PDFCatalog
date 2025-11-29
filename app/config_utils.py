@@ -15,8 +15,8 @@ __version__ = "0.4.1"
 # valori di default che poi vengono sovrascritti
 # dal file di configurazione JSON
 excel_file = f"{os.getcwd()}/example_excel/Product list example.xlsx"
-break_page_company = True
-generate_random_images = False
+# break_page_company = True
+# generate_random_images = False
 title = "CHANGE THE TITLE"
 subtitle = "Change this subtitle"
 footer = "this is a footer"
@@ -80,7 +80,7 @@ flags_dictionary = {
 CONFIG_FILE = 'config.json'
 
 def load_config():
-    global excel_file, break_page_company, title, subtitle, footer, generate_random_images
+    global excel_file, title, subtitle, footer
 
     logger.info("JSON Config file reading...")
     if os.path.exists(CONFIG_FILE):
@@ -89,8 +89,6 @@ def load_config():
                 config = json.load(f)
                 #
                 excel_file = config["excel_file"]
-                break_page_company = config["break_page_company"]
-                generate_random_images = config["generate_random_images"]
                 title = config["title"]
                 subtitle = config["subtitle"]
                 footer = config["footer"]
@@ -99,10 +97,15 @@ def load_config():
                 for k, v in colors_dictionary.items():
                     colors_dictionary[k] = config[k]
                     logger.info(f"{v} -> {k}")
-
+                #
                 # paths
                 for k, v in path_dictionary.items():
                     path_dictionary[k] = Path(config[k])
+                    logger.info(f"{str(v)} -> {k}")
+                #
+                # flags
+                for k, v in flags_dictionary.items():
+                    flags_dictionary[k] = eval(config[k])
                     logger.info(f"{str(v)} -> {k}")
             except:
                 logger.error("JSON Config file error", exc_info=True)
@@ -120,8 +123,6 @@ def save_config():
         config = {}
         # parametri
         config["excel_file"] = excel_file
-        config["break_page_company"] = break_page_company
-        config["generate_random_images"] = generate_random_images
         config["title"] = title 
         config["subtitle"] = subtitle 
         config["footer"] = footer
@@ -131,6 +132,10 @@ def save_config():
             logger.info(f"{k} -> {v}")
         #paths
         for k, v in path_dictionary.items():
+            config[f"{k}"] = str(v)
+            logger.info(f"{k} -> {str(v)}")
+        #flags
+        for k, v in flags_dictionary.items():
             config[f"{k}"] = str(v)
             logger.info(f"{k} -> {str(v)}")
 

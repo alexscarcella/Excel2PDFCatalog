@@ -37,7 +37,6 @@ def build_UI_and_GO():
 
           logger.info(f"Execute with this parameters:")
           logger.info(f"--> excel_file: {config_utils.excel_file}")
-          logger.info(f"--> break_page_company: {config_utils.break_page_company}")
           logger.info(f"--> title: {config_utils.title}")
           logger.info(f"--> subtitle: {config_utils.subtitle}")
           logger.info(f"--> footer: {config_utils.footer}")
@@ -158,7 +157,7 @@ def build_UI_and_GO():
      # Checkboxes
      tk.Label(frame_options, text="OPTIONS:").grid(row=grid_row, column=0, sticky="w", columnspan=2)
      grid_row= grid_row + 1
-     if config_utils.break_page_company == True:
+     if config_utils.flags_dictionary["BREAK_PAGE_COMPANY"] == True:
            chk1 = tk.BooleanVar(value=True)
      else:
            chk1 = tk.BooleanVar(value=False)
@@ -173,17 +172,15 @@ def build_UI_and_GO():
      # Separator orizzontale
      separator = ttk.Separator(frame_options, orient='horizontal')  # oppure 'vertical'
      separator.grid(row=grid_row, column=0, columnspan=2, sticky="ew", padx=FRAME_PADDING, pady=FRAME_PADDING)
-
-
-     # checkboxes
+     # ----------------------------------------------------------------------
+     # -------------- checkboxes --------------------------------------------
+     # ----------------------------------------------------------------------
      grid_row= grid_row + 1
      tk.Label(frame_options, text="OPTIONS:").grid(row=grid_row, column=0, sticky="w", columnspan=2)
      grid_row= grid_row + 1
      for k, v in config_utils.flags_dictionary.items():
-          if v == True:
-               chk_var = tk.BooleanVar(value=True)
-          else:
-               chk_var = tk.BooleanVar(value=False)
+          if v == True: chk_var = tk.BooleanVar(value=True)
+          if v == False: chk_var = tk.BooleanVar(value=False)
           chk = tk.Checkbutton(
                frame_options, 
                text=f"{k.replace('_',' ').capitalize()} (not yet working)", 
