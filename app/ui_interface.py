@@ -272,7 +272,7 @@ def build_UI_and_GO():
      "3. Excel cells with no content are not allowed: in this case, the PDF will not be produced.\n"
      "4. The field containing the price must be numeric.\n"
      "5. Close the Excel sheet before generating the PDF.\n"
-     "6. All products images must be in <excel col image>.png 1:1 format (square).\n"
+     "6. All products images must be in <excel col image> (with extension) 1:1 format (square). Supported format: png, jpg, jpeg.\n"
      "7. The logo is a logo.png with 1:1 format (square).\n"
      "8. The intro text is a .txt file with UTF-8 encoding. Some HTML tags are supported\n"
      )
