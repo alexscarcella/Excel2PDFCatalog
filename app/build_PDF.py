@@ -17,7 +17,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from app.logger import logger
 from pathlib import Path
-from app.images_utils import generate_image, resize_image
+from app.images_utils import generate_image, resize_image, load_image_path
 import app.config_utils as config_utils
 
 # -------------------------------------------------
@@ -322,10 +322,11 @@ def build_pdf():
         IMAGE_SIZE = 4.4 * cm
         img = None
         try:
-            img_file_path = f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/{r[XLS_COLUMN_IMG]}.png"
-            if os.path.exists(img_file_path):
+            base_image_file_path = Path(f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/{r[XLS_COLUMN_IMG]}")
+            img_file_path = load_image_path(base_image_file_path)
+            if img_file_path is not None:
                 logger.warning(f"Product image founded! {img_file_path}")
-                img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)  
+                img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
             elif config_utils.flags_dictionary["GENERATE_RANDOM_PRODUCTS_IMAGE"] == True:   
                 img_file_path = f"./tmp/{r[XLS_COLUMN_IMG]}.png"
                 logger.warning(f"Product image not founded! Build new file... {img_file_path}")

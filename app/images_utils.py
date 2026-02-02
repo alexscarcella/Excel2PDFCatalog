@@ -1,6 +1,8 @@
 import random
 from PIL import Image, ImageDraw
+from pathlib import Path
 from app.logger import logger
+
 
 def generate_image(size=400, num_shapes=10, file_name="xxx"):
     # Crea immagine bianca
@@ -37,3 +39,21 @@ def disegna_blob(size):
 def resize_image(img, size_x, size_y):
     new_img = img.resize((size_x, size_y), Image.LANCZOS)
     return new_img
+
+
+def load_image_path(image_base_path):
+    """
+    Carica un'immagine cercando prima .png, poi .jpg, poi .jpeg
+    
+    Args:
+        percorso_base: path senza estensione, es. "immagini/foto"
+    
+    Returns:
+        Image path se trovato, None altrimenti
+    """
+    path_base = Path(image_base_path)
+    for ext in ['.png', '.jpg', '.jpeg']:
+        complete_path = path_base.with_suffix(ext)
+        if complete_path.exists():
+            return complete_path
+    return None
