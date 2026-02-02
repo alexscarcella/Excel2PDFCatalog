@@ -25,11 +25,11 @@ jobs:
             platform_name: Windows
             artifact_name: Excel2PDFCatalog-Windows
             arch_suffix: ""
-          # Build universale per macOS (funziona sia su Intel che Apple Silicon)
+          # Build per macOS Apple Silicon (funziona anche su Intel via Rosetta 2)
           - os: macos-latest
-            platform_name: macOS-Universal
-            artifact_name: Excel2PDFCatalog-macOS-Universal
-            arch_suffix: "-Universal"
+            platform_name: macOS-AppleSilicon
+            artifact_name: Excel2PDFCatalog-macOS-AppleSilicon
+            arch_suffix: "-AppleSilicon"
     
     runs-on: ${{ matrix.os }}
     
@@ -68,13 +68,13 @@ jobs:
           --collect-all reportlab `
           Excel2PDFCatalog.py
     
-    - name: Build macOS Universal application
+    - name: Build macOS application
       if: runner.os == 'macOS'
       run: |
-        # Build universale che funziona su entrambe le architetture
+        # Build per architettura nativa (Apple Silicon su macos-latest)
+        # Funziona anche su Intel tramite Rosetta 2
         pyinstaller --onefile --windowed \
           --name Excel2PDFCatalog \
-          --target-arch universal2 \
           --add-data "app:app" \
           --add-data "fonts:fonts" \
           --add-data "logs:logs" \
@@ -172,9 +172,8 @@ jobs:
         2. First launch: Right-click → Open (to bypass Gatekeeper)
         
         COMPATIBILITY:
-        This is a Universal binary that works on:
-        - Apple Silicon (M1, M2, M3, M4)
-        - Intel processors
+        - Optimized for Apple Silicon (M1, M2, M3, M4)
+        - Works on Intel Macs via Rosetta 2 translation
         
         USAGE:
         - Select your Excel file
@@ -243,7 +242,7 @@ jobs:
           
           ### Downloads:
           - **Windows**: Excel2PDFCatalog-Windows-v${{ github.event.inputs.version }}.zip
-          - **macOS Universal (Intel & Apple Silicon)**: Excel2PDFCatalog-macOS-Universal-v${{ github.event.inputs.version }}.dmg
+          - **macOS**: Excel2PDFCatalog-macOS-AppleSilicon-v${{ github.event.inputs.version }}.dmg
           
           ### What's included:
           - Standalone executable (no Python installation needed)
@@ -257,9 +256,7 @@ jobs:
           **macOS**: Mount DMG and copy to Applications
           
           ### macOS Compatibility:
-          The macOS version is a Universal binary that works on both:
-          - **Apple Silicon** (M1, M2, M3, M4 chips - 2020 and newer)
-          - **Intel** processors (older Macs)
+          The macOS version is optimized for Apple Silicon (M1/M2/M3/M4) but also works on Intel Macs through Rosetta 2 translation layer.
           
           For documentation visit: https://github.com/alexscarcella/Excel2PDFCatalog
       env:
