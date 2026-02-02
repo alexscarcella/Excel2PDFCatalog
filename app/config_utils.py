@@ -15,6 +15,7 @@ __version__ = "0.4.1"
 # valori di default che poi vengono sovrascritti
 # dal file di configurazione JSON
 excel_file = f"{os.getcwd()}/example_excel/Product list example.xlsx"
+txt_intro_file = f"{os.getcwd()}/txt_intros/intro.txt"
 # break_page_company = True
 # generate_random_images = False
 title = "CHANGE THE TITLE"
@@ -80,7 +81,7 @@ flags_dictionary = {
 CONFIG_FILE = 'config.json'
 
 def load_config():
-    global excel_file, title, subtitle, footer
+    global excel_file, txt_intro_file, title, subtitle, footer
 
     logger.info("JSON Config file reading...")
     if os.path.exists(CONFIG_FILE):
@@ -89,6 +90,7 @@ def load_config():
                 config = json.load(f)
                 #
                 excel_file = config["excel_file"]
+                txt_intro_file = config["txt_intro_file"]
                 title = config["title"]
                 subtitle = config["subtitle"]
                 footer = config["footer"]
@@ -123,6 +125,7 @@ def save_config():
         config = {}
         # parametri
         config["excel_file"] = excel_file
+        config["txt_intro_file"] = txt_intro_file
         config["title"] = title 
         config["subtitle"] = subtitle 
         config["footer"] = footer

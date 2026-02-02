@@ -16,6 +16,13 @@ def build_UI_and_GO():
                     config_utils.excel_file = selected_file
                     file_label.config(text=config_utils.excel_file)
                     logger.info(f"File Excel selected - {config_utils.excel_file}")
+     
+     def browse_txt_file():
+          selected_file = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")], title="Select the INTRO TXT file:")
+          if selected_file:
+                    config_utils.txt_intro_file = selected_file
+                    file_txt_label.config(text=config_utils.txt_intro_file)
+                    logger.info(f"File TXT selected - {config_utils.txt_intro_file}")
 
      def browse_folder(kk, ll):
           selected_folder = filedialog.askdirectory()
@@ -37,6 +44,7 @@ def build_UI_and_GO():
 
           logger.info(f"Execute with this parameters:")
           logger.info(f"--> excel_file: {config_utils.excel_file}")
+          logger.info(f"--> txt_intro_file: {config_utils.txt_intro_file}")
           logger.info(f"--> title: {config_utils.title}")
           logger.info(f"--> subtitle: {config_utils.subtitle}")
           logger.info(f"--> footer: {config_utils.footer}")
@@ -44,6 +52,8 @@ def build_UI_and_GO():
           if conferma:
                if config_utils.excel_file == None: 
                     logger.warning(f"No XSLX file selected!")
+               elif config_utils.txt_intro_file == None:
+                    logger.warning(f"No TXT intro file selected!")
                else:
                     build_PDF.build_pdf()
                     messagebox.showinfo("Executed", "Operation complete!")
@@ -220,13 +230,21 @@ def build_UI_and_GO():
      # ---------------frame dx - file ---------------------------------------
      # ----------------------------------------------------------------------
      grid_row = 0
-     # Selezione file
+     # Selezione file XSLX
      tk.Label(frame_right, text="Select the XLSX file with the list of products:", anchor="e", justify=tk.LEFT).grid(row=grid_row, column=0, sticky="w", columnspan=2)
      grid_row= grid_row + 1
      tk.Button(frame_right, width=20, text="Select the file", command=browse_file).grid(row=grid_row, column=0, sticky="e", padx=FRAME_PADDING)
      file_label = tk.Label(frame_right, text=f"{config_utils.excel_file}", fg="blue", justify=tk.LEFT, wraplength=400)
      file_label.grid(row=grid_row, column=1, sticky="w")
      file_label.config(text=config_utils.excel_file)
+     grid_row= grid_row + 1
+     # Selezione file TXT
+     tk.Label(frame_right, text="Select the .TXT file with the INTRO:", anchor="e", justify=tk.LEFT).grid(row=grid_row, column=0, sticky="w", columnspan=2)
+     grid_row= grid_row + 1
+     tk.Button(frame_right, width=20, text="Select the text file", command=browse_txt_file).grid(row=grid_row, column=0, sticky="e", padx=FRAME_PADDING)
+     file_txt_label = tk.Label(frame_right, text=f"{config_utils.txt_intro_file}", fg="blue", justify=tk.LEFT, wraplength=400)
+     file_txt_label.grid(row=grid_row, column=1, sticky="w")
+     file_txt_label.config(text=config_utils.txt_intro_file)
      grid_row= grid_row + 1
      # Separator orizzontale
      separator = ttk.Separator(frame_right, orient='horizontal')  # oppure 'vertical'
@@ -255,7 +273,9 @@ def build_UI_and_GO():
      "4. The field containing the price must be numeric.\n"
      "5. Close the Excel sheet before generating the PDF.\n"
      "6. All products images must be in <excel col image>.png 1:1 format (square).\n"
-     "7. The logo is a logo.png with 1:1 format (square).")
+     "7. The logo is a logo.png with 1:1 format (square).\n"
+     "8. The intro text is a .txt file with UTF-8 encoding. Some HTML tags are supported\n"
+     )
      tk.Label(frame_right, text=long_texts, justify=tk.LEFT, wraplength=480, borderwidth=0, relief="solid").grid(row=grid_row, column=0, columnspan=2, sticky="w", pady=FRAME_PADDING)
      grid_row= grid_row + 1
      # Separator orizzontale

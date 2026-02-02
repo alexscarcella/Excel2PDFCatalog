@@ -189,18 +189,11 @@ def insert_body(footer):
     story.append(Spacer(1, 3 * cm))
     story.append(Paragraph('Subtitle title of the text section', styles['ParTitle2']))
     story.append(Spacer(1, 1 * cm))
-    long_para = (
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum eu lorem eu enim congue porta a a lacus. "
-    "Curabitur non justo purus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; "
-    "Nam risus dolor, faucibus eget eleifend at, fermentum et risus. Etiam lacinia purus in vulputate tincidunt. "
-    "Duis posuere rhoncus augue, et scelerisque nibh porta eu. Ut a nisi non odio scelerisque iaculis. "
-    "Nam pretium massa at urna convallis hendrerit quis in lacus. Maecenas quis elementum mi, non tincidunt nisl. "
-    "Aliquam blandit finibus dapibus.\n\n"
-    )
-    # aggiungiamo molti paragrafi per occupare più pagine
-    for i in range(1):
-        story.append(Paragraph(long_para * 6, styles['Par']))
-        story.append(Spacer(1, 0.5 * cm))
+    long_para = Path(config_utils.txt_intro_file).read_text(encoding='utf-8')
+    long_para = long_para.replace('\n', '<br/>')
+    logger.info(f"Load intro text file: {config_utils.txt_intro_file}")
+    logger.info(long_para)
+    story.append(Paragraph(long_para, styles['Par']))
     story.append(Spacer(1, 4 * cm))
     story.append(Paragraph(f"{footer}", styles['Footer']))
     logger.info("insert_body OK")
