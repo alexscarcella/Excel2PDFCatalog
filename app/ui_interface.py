@@ -164,24 +164,24 @@ def build_UI_and_GO():
      entry_footer.grid(row=grid_row, column=1, sticky="e", padx=FRAME_PADDING)
      grid_row= grid_row + 1
 
-     # Checkboxes
-     tk.Label(frame_options, text="OPTIONS:").grid(row=grid_row, column=0, sticky="w", columnspan=2)
-     grid_row= grid_row + 1
-     if config_utils.flags_dictionary["BREAK_PAGE_COMPANY"] == True:
-           chk1 = tk.BooleanVar(value=True)
-     else:
-           chk1 = tk.BooleanVar(value=False)
-     chk_break_page_company = tk.Checkbutton(
-          frame_options, 
-          text="Change page by producer:", 
-          variable=chk1, 
-          command=update_break_page_company
-          )
-     chk_break_page_company.grid(row=grid_row, column=0, sticky="w", columnspan=2)
-     grid_row= grid_row + 1
-     # Separator orizzontale
-     separator = ttk.Separator(frame_options, orient='horizontal')  # oppure 'vertical'
-     separator.grid(row=grid_row, column=0, columnspan=2, sticky="ew", padx=FRAME_PADDING, pady=FRAME_PADDING)
+     # # Checkboxes
+     # tk.Label(frame_options, text="OPTIONS:").grid(row=grid_row, column=0, sticky="w", columnspan=2)
+     # grid_row= grid_row + 1
+     # if config_utils.flags_dictionary["BREAK_PAGE_COMPANY"] == True:
+     #       chk1 = tk.BooleanVar(value=True)
+     # else:
+     #       chk1 = tk.BooleanVar(value=False)
+     # chk_break_page_company = tk.Checkbutton(
+     #      frame_options, 
+     #      text="Change page by producer:", 
+     #      variable=chk1, 
+     #      command=update_break_page_company
+     #      )
+     # chk_break_page_company.grid(row=grid_row, column=0, sticky="w", columnspan=2)
+     # grid_row= grid_row + 1
+     # # Separator orizzontale
+     # separator = ttk.Separator(frame_options, orient='horizontal')  # oppure 'vertical'
+     # separator.grid(row=grid_row, column=0, columnspan=2, sticky="ew", padx=FRAME_PADDING, pady=FRAME_PADDING)
      # ----------------------------------------------------------------------
      # -------------- checkboxes --------------------------------------------
      # ----------------------------------------------------------------------
@@ -193,7 +193,7 @@ def build_UI_and_GO():
           if v == False: chk_var = tk.BooleanVar(value=False)
           chk = tk.Checkbutton(
                frame_options, 
-               text=f"{k.replace('_',' ').capitalize()} (not yet working)", 
+               text=f"{k.replace('_',' ').capitalize()}", 
                variable=chk_var, 
                command=lambda key=k, var=chk_var: config_utils.flags_dictionary.update({key: var.get()})
                )

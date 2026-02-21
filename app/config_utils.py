@@ -55,7 +55,8 @@ flags_dictionary = {
     "BREAK_PAGE_COMPANY": False,
     "ADD_PRODUCT_DESCRIPTION": True,
     "GENERATE_RANDOM_PRODUCTS_IMAGE": False,
-    "HIDE_PRICES": False
+    "HIDE_PRICES": False,
+    "FULL_PAGE_CATEGORY": True
 }
 
 # [Colors defaults]

@@ -9,6 +9,7 @@ import os
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether, PageBreak, NextPageTemplate
 from reportlab.platypus.tableofcontents import TableOfContents
+from reportlab.platypus import Flowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.units import cm
@@ -19,6 +20,20 @@ from app.logger import logger
 from pathlib import Path
 from app.images_utils import generate_image, resize_image, load_image_path
 import app.config_utils as config_utils
+
+
+class CambiaHeader(Flowable):
+    def __init__(self, titolo, colore):
+        super().__init__()
+        self.titolo = titolo
+        self.colore = colore
+        self.width = 0
+        self.height = 0  # non occupa spazio nella pagina
+
+    def draw(self):
+        header_state["titolo"] = self.titolo
+        header_state["colore"] = self.colore
+
 
 # -------------------------------------------------
 warnings.simplefilter("ignore")
@@ -75,6 +90,9 @@ story = []
 #===========================================================================
 # ---------- CANVAS da associare ai template di pagina ---------------------
 #===========================================================================
+
+header_state = {"titolo": "", "colore": colors.steelblue}
+
 def cover_on_page(canvas, doc):
     canvas.saveState()
     canvas.setFillColor(config_utils.colors_dictionary["COVER_BACKGROUND_COLOR"])
@@ -106,7 +124,7 @@ def category_on_page(canvas, doc):
     canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
     canvas.setFillColor(config_utils.colors_dictionary["CATEGORY_TITLE_COLOR"])
     canvas.setFont(font_primary, 8)
-    canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_MARGIN // 2, f'Pagina {doc.page}')
+    canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_MARGIN // 2, f'{doc.page}')
     canvas.restoreState()
 
 def matrix_3x3_on_page(canvas, doc):
@@ -115,8 +133,14 @@ def matrix_3x3_on_page(canvas, doc):
     canvas.setFillColor(config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"])
     canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
     canvas.setFont(font_primary, 8)
-    #canvas.drawString(MARGIN, PAGE_HEIGHT - MARGIN // 2, 'Sezione 3')
-    canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_MARGIN // 2, f'Pagina {doc.page}')
+    canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_MARGIN // 2, f'{doc.page}')
+    #
+    canvas.setFillColor(config_utils.colors_dictionary["COVER_BACKGROUND_COLOR"])
+    canvas.rect(0,PAGE_HEIGHT-(1.8*cm), PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
+    canvas.setFont(font_primary, 18)
+    canvas.setFillColor(config_utils.colors_dictionary["BODY_BACKGROUND_COLOR"])
+    canvas.drawString(PAGE_MARGIN, PAGE_HEIGHT - (1.2*cm), header_state["titolo"])
+    #
     canvas.restoreState()
 
 #=======================================================
@@ -198,18 +222,18 @@ def insert_body(footer):
     story.append(Paragraph(f"{footer}", styles['Footer']))
     logger.info("insert_body OK")
 
-def build_TableOfContents():
-    global story
-    # Sommario
-    story.append(NextPageTemplate('Body'))
-    story.append(PageBreak())
-    toc = TableOfContents()
-    toc.levelStyles = [
-        styles['CategoryTitle']
-    ]
-    story.append(Paragraph("Summary", styles['Heading1']))
-    story.append(toc)
-    story.append(PageBreak())
+# def build_TableOfContents():
+#     global story
+#     # Sommario
+#     story.append(NextPageTemplate('Body'))
+#     story.append(PageBreak())
+#     toc = TableOfContents()
+#     toc.levelStyles = [
+#         styles['CategoryTitle']
+#     ]
+#     story.append(Paragraph("Summary", styles['Heading1']))
+#     story.append(toc)
+#     story.append(PageBreak())
 
 def flush_1x3_row():
     global raw_1x3_items
@@ -284,20 +308,26 @@ def build_pdf():
         except:
             formatted_price = ""
             logger.warning(f"{r[XLS_ITEM]} - XLS_PRICE not defined")
+        ## 
+        ## aggiorno lo stato dell'header per il template della pagina dei prodotti
+        #header_state["titolo"] = r[XLS_CATEGORY]
+        ## story.append(CambiaHeader(r[XLS_CATEGORY], colors.steelblue))
+        #header_state["colore"] = colors.darkgreen
+        ## 
         # -----------------------------------------------  
         # ---------- verifico per inserire la pagina del titolo della categoria
         if previous_category != r[XLS_CATEGORY]:
             if raw_1x3_items[0] != "": 
                 flush_1x3_row() # se ho prodotti residui nella riga, li pubblico 
-            #
-            story.append(NextPageTemplate('Category')) # scelgo il nuovo template
-            story.append(PageBreak()) # forzo il cambio pagina
+            if config_utils.flags_dictionary["FULL_PAGE_CATEGORY"] == True:
+                story.append(NextPageTemplate('Category')) # scelgo il nuovo template
+                story.append(PageBreak()) # forzo il cambio pagina
+                logger.info(f"Category: {r[XLS_CATEGORY]}")
+                story.append(Spacer(1, 5 * cm))
+                story.append(Paragraph(r[XLS_CATEGORY], styles['CategoryTitle']))
+            story.append(NextPageTemplate('Matrix_3x3')) #scelgo il template per i prodotti
             previous_category = r[XLS_CATEGORY] # aggiorno la variabile di controllo della categoria
             previous_company="" # resetto la variabile di controllo della company
-            logger.info(f"Category: {r[XLS_CATEGORY]}")
-            story.append(Spacer(1, 5 * cm))
-            story.append(Paragraph(r[XLS_CATEGORY], styles['CategoryTitle']))
-            story.append(NextPageTemplate('Matrix_3x3')) #scelgo il template per i prodotti
             if config_utils.flags_dictionary["BREAK_PAGE_COMPANY"] == False:
                 story.append(PageBreak())
         # -----------------------------------------------  
@@ -306,6 +336,7 @@ def build_pdf():
             if previous_company != r[XLS_COMPANY]: # se l'azienda è diversa dalla precedente, cambio pagine tra le aziende
                 if raw_1x3_items[0] != "": 
                     flush_1x3_row() # se ho prodotti residui nella riga, li pubblico
+                story.append(CambiaHeader(r[XLS_CATEGORY], colors.steelblue))
                 story.append(PageBreak())
                 previous_company = r[XLS_COMPANY]
                 logger.info(f"     Company: {r[XLS_COMPANY]}")
