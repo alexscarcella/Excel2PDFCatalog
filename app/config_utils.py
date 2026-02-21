@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from app.logger import logger
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 # valori di default che poi vengono sovrascritti
 # dal file di configurazione JSON
@@ -54,7 +54,8 @@ path_dictionary = {
 flags_dictionary = {
     "BREAK_PAGE_COMPANY": False,
     "ADD_PRODUCT_DESCRIPTION": True,
-    "GENERATE_RANDOM_PRODUCTS_IMAGE": False
+    "GENERATE_RANDOM_PRODUCTS_IMAGE": False,
+    "HIDE_PRICES": False
 }
 
 # [Colors defaults]

@@ -278,9 +278,11 @@ def build_pdf():
             logger.warning(f"{r[XLS_ITEM]} - XLS_BADGE not defined")
             r[XLS_BADGE] = ""
         try:
-            formatted_price=f"€ {float(r[XLS_PRICE]):.2f}"
+            formatted_price = ""
+            if config_utils.flags_dictionary["HIDE_PRICES"] == False:
+                formatted_price=f"€ {float(r[XLS_PRICE]):.2f}"
         except:
-            formatted_price = 0
+            formatted_price = ""
             logger.warning(f"{r[XLS_ITEM]} - XLS_PRICE not defined")
         # -----------------------------------------------  
         # ---------- verifico per inserire la pagina del titolo della categoria
