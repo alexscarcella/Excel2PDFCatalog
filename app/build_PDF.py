@@ -113,8 +113,8 @@ def body_on_page(canvas, doc):
     canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
     canvas.setFillColor(config_utils.colors_dictionary["PARAGRAPH_COLOR"])
     canvas.setFont(font_primary, 8)
-    canvas.drawString(PAGE_MARGIN, PAGE_HEIGHT - PAGE_MARGIN // 2, 'Section 2')
-    canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_MARGIN // 2, f'Pagina {doc.page}')
+    canvas.drawString(PAGE_MARGIN, PAGE_HEIGHT - PAGE_MARGIN // 2, ' ') # prima c'era scritto "section 2" ma non mi piaceva, quindi lo lascio vuoto
+    canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_MARGIN // 2, f'{doc.page}')
     canvas.restoreState()
 
 def category_on_page(canvas, doc):
@@ -132,14 +132,17 @@ def matrix_3x3_on_page(canvas, doc):
     canvas.saveState()
     canvas.setFillColor(config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"])
     canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
-    canvas.setFont(font_primary, 8)
-    canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_MARGIN // 2, f'{doc.page}')
+    # canvas.setFont(font_primary, 8)
+    # canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_MARGIN // 2, f'{doc.page}')
     #
     canvas.setFillColor(config_utils.colors_dictionary["COVER_BACKGROUND_COLOR"])
     canvas.rect(0,PAGE_HEIGHT-(1.8*cm), PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
     canvas.setFont(font_primary, 18)
     canvas.setFillColor(config_utils.colors_dictionary["BODY_BACKGROUND_COLOR"])
     canvas.drawString(PAGE_MARGIN, PAGE_HEIGHT - (1.2*cm), header_state["titolo"])
+    canvas.setFillColor(config_utils.colors_dictionary["CATEGORY_TITLE_COLOR"])
+    canvas.setFont(font_primary, 8)
+    canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_MARGIN // 2, f'{doc.page}')
     #
     canvas.restoreState()
 
@@ -209,9 +212,9 @@ def insert_body(footer):
     # Impostiamo il template Body dalla prossima pagina
     story.append(NextPageTemplate('Body'))
     story.append(PageBreak())
-    story.append(Paragraph('Title of the text section', styles['ParTitle1']))
+    story.append(Paragraph('Condizioni generali di vendita', styles['ParTitle1'])) # rendere dinamico il "Title of the text section"
     story.append(Spacer(1, 3 * cm))
-    story.append(Paragraph('Subtitle title of the text section', styles['ParTitle2']))
+    # story.append(Paragraph('Subtitle title of the text section', styles['ParTitle2'])) # rendere dinamico il "Subtitle title of the text section"
     story.append(Spacer(1, 1 * cm))
     long_para = Path(config_utils.txt_intro_file).read_text(encoding='utf-8')
     long_para = long_para.replace('\n', '<br/>')
@@ -366,8 +369,9 @@ def build_pdf():
                 generate_image(800, 20, img_file_path)
                 img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
             else:
-                img_file_path = f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/default.png"
-                if os.path.exists(img_file_path):
+               # img_file_path = f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/default.png"
+                img_file_path = os.path.join(f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}", "default.png")
+                if Path(img_file_path).exists():
                     logger.warning(f"Product image not founded! Load default image: {img_file_path}")
                     img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)  
         except:

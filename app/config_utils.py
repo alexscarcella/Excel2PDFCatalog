@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from app.logger import logger
 
-__version__ = "0.4.2"
+__version__ = "0.4.4"
 
 # valori di default che poi vengono sovrascritti
 # dal file di configurazione JSON
@@ -18,9 +18,9 @@ excel_file = f"{os.getcwd()}/example_excel/Product list example.xlsx"
 txt_intro_file = f"{os.getcwd()}/txt_intros/intro.txt"
 # break_page_company = True
 # generate_random_images = False
-title = "CHANGE THE TITLE"
-subtitle = "Change this subtitle"
-footer = "this is a footer"
+title = "CHANGE THE TITLE" 
+subtitle = "Change this subtitle" 
+footer = "Change this footer" 
 
 # colors_dictionary è una lista (o altro iterabile) di stringhe
 colors_dictionary = {"COVER_TITLE_COLOR": "#ffffff",
