@@ -32,6 +32,10 @@ It is particularly useful for businesses, shops, or individuals who need to quic
   - ***example_excel/*** and ***example_catalog/*** provide sample inputs and outputs to validate layout and mapping.
 - Portable & editable: code organized to allow quick changes to layout logic, mapping rules, or PDF styling.
 
+## ⚙️ Tech stack used
+
+![Stack Fingerprint](https://stackfingerprint.vercel.app/api/card?repo=alexscarcella/Excel2PDFCatalog&theme=golden&layout=compact&size=xl&icons=mono&pills=round)
+
 ## 🛠️ Requirements
 
 - **Python 3.11+**
