@@ -23,15 +23,17 @@ import app.config_utils as config_utils
 
 
 class CambiaHeader(Flowable):
-    def __init__(self, titolo, colore):
+    def __init__(self, titolo, header_company, colore):
         super().__init__()
         self.titolo = titolo
+        self.header_company = header_company
         self.colore = colore
         self.width = 0
         self.height = 0  # non occupa spazio nella pagina
 
     def draw(self):
         header_state["titolo"] = self.titolo
+        header_state["header_company"] = self.header_company
         header_state["colore"] = self.colore
 
 
@@ -91,7 +93,7 @@ story = []
 # ---------- CANVAS da associare ai template di pagina ---------------------
 #===========================================================================
 
-header_state = {"titolo": "", "colore": colors.steelblue}
+header_state = {"titolo": "", "header_company": "", "colore": colors.steelblue}
 
 def cover_on_page(canvas, doc):
     canvas.saveState()
@@ -140,6 +142,7 @@ def matrix_3x3_on_page(canvas, doc):
     canvas.setFont(font_primary, 18)
     canvas.setFillColor(config_utils.colors_dictionary["BODY_BACKGROUND_COLOR"])
     canvas.drawString(PAGE_MARGIN, PAGE_HEIGHT - (1.2*cm), header_state["titolo"])
+    canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_HEIGHT - (1.2*cm), header_state["header_company"])
     canvas.setFillColor(config_utils.colors_dictionary["CATEGORY_TITLE_COLOR"])
     canvas.setFont(font_primary, 8)
     canvas.drawRightString(PAGE_WIDTH - PAGE_MARGIN, PAGE_MARGIN // 2, f'{doc.page}')
@@ -339,12 +342,12 @@ def build_pdf():
             if previous_company != r[XLS_COMPANY]: # se l'azienda è diversa dalla precedente, cambio pagine tra le aziende
                 if raw_1x3_items[0] != "": 
                     flush_1x3_row() # se ho prodotti residui nella riga, li pubblico
-                story.append(CambiaHeader(r[XLS_CATEGORY], colors.steelblue))
+                story.append(CambiaHeader(r[XLS_CATEGORY], r[XLS_COMPANY],colors.steelblue))
                 story.append(PageBreak())
                 previous_company = r[XLS_COMPANY]
                 logger.info(f"     Company: {r[XLS_COMPANY]}")
-                story.append(Paragraph(r[XLS_COMPANY], styles['CompanyTitle']))
-                story.append(Spacer(1, 6*cm))
+                #story.append(Paragraph(r[XLS_COMPANY], styles['CompanyTitle']))
+                #story.append(Spacer(1, 6*cm))
         else:
             if previous_company != r[XLS_COMPANY]: # se l'azienda è diversa dalla precedente, vado a capo ma non cambio pagina
                 if raw_1x3_items[0] != "": 
