@@ -370,7 +370,8 @@ def build_pdf():
                 img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
             else:
                # img_file_path = f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/default.png"
-                img_file_path = os.path.join(f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}", "default.png")
+                img_file_path = Path(f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/default.png")
+                #img_file_path = os.path.join(f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}", "default.png")
                 if Path(img_file_path).exists():
                     logger.warning(f"Product image not founded! Load default image: {img_file_path}")
                     img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)  
