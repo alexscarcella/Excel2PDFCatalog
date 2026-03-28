@@ -378,6 +378,8 @@ def build_pdf():
                 if Path(img_file_path).exists():
                     logger.warning(f"Product image not founded! Load default image: {img_file_path}")
                     img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)  
+                else:
+                    logger.error(f"Default image not founded! {img_file_path}")
         except:
             logger.error("Product image not founded! ", exc_info=True)
         
