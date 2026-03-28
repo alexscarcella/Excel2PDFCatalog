@@ -76,7 +76,7 @@ styles.add(ParagraphStyle(name="TableItemSize", fontName=font_primary, fontSize=
 styles.add(ParagraphStyle(name="TableItemBadge", fontName=font_primary, fontSize=10, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_NEWS_COLOR"], spaceAfter=0))
 styles.add(ParagraphStyle(name="ParTitle1", fontName=font_primary, fontSize=30, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE1_COLOR"], spaceAfter=0))
 styles.add(ParagraphStyle(name="ParTitle2", fontName=font_primary, fontSize=20, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE2_COLOR"], spaceAfter=0))
-styles.add(ParagraphStyle(name="Par", fontName=font_primary, fontSize=10, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_COLOR"], spaceAfter=0))
+styles.add(ParagraphStyle(name="Par", fontName=font_primary, fontSize=12, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_COLOR"], spaceAfter=0))
 #---------------------------------------------------
 locale.setlocale(locale.LC_ALL, config.get("System","LOCALE"))
 # Calcola larghezza disponibile
