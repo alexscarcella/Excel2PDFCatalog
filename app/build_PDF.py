@@ -62,22 +62,26 @@ PAGE_MARGIN = int(config.get("Layout","MARGIN")) * cm
 pdfmetrics.registerFont(TTFont("Bandi Regular", "./fonts/Core Bandi Face W01 Regular.ttf"))
 font_primary = "Bandi Regular"
 #---------------------------------------------------
-# styles
 styles = getSampleStyleSheet()
-styles.add(ParagraphStyle(name='CoverTitle', fontName=font_primary, fontSize=50, leading=42, alignment=TA_CENTER, spaceAfter=10, textColor=config_utils.colors_dictionary["COVER_TITLE_COLOR"]))
-styles.add(ParagraphStyle(name="CoverSubtitle", fontName=font_primary, fontSize=20, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["COVER_SUBTITLE_COLOR"] , spaceAfter=20))
-styles.add(ParagraphStyle(name="Footer", fontName=font_primary, fontSize=10, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["FOOTER_COLOR"], spaceAfter=0))
-styles.add(ParagraphStyle(name="CategoryTitle", fontName=font_primary, fontSize=54, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["CATEGORY_TITLE_COLOR"], spaceAfter=20))
-styles.add(ParagraphStyle(name="CompanyTitle", fontName=font_primary, fontSize=48, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["COMPANY_TITLE_COLOR"], spaceAfter=20))
-styles.add(ParagraphStyle(name="TableCompanyName", fontName=font_primary, fontSize=8, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["TABLE_COMPANY_NAME_COLOR"], spaceAfter=0, spaceBefore=0, textTransform='uppercase'))
-styles.add(ParagraphStyle(name="TableItem", fontName=font_primary, fontSize=11, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["TABLE_ITEM_NAME_COLOR"], spaceAfter=0))
-styles.add(ParagraphStyle(name="TableItemPrice", fontName=font_primary, fontSize=12, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_PRICE_COLOR"], spaceAfter=0))
-styles.add(ParagraphStyle(name="TableItemSize", fontName=font_primary, fontSize=10, alignment=0, textColor=config_utils.colors_dictionary["TABLE_ITEM_SIZE_COLOR"], spaceAfter=0))
-styles.add(ParagraphStyle(name="TableItemBadge", fontName=font_primary, fontSize=10, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_NEWS_COLOR"], spaceAfter=0))
-styles.add(ParagraphStyle(name="ParTitle1", fontName=font_primary, fontSize=30, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE1_COLOR"], spaceAfter=0))
-styles.add(ParagraphStyle(name="ParTitle2", fontName=font_primary, fontSize=20, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE2_COLOR"], spaceAfter=0))
-styles.add(ParagraphStyle(name="Par", fontName=font_primary, fontSize=12, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_COLOR"], spaceAfter=0))
-#---------------------------------------------------
+# styles
+def _init_styles():
+    global styles
+    styles = getSampleStyleSheet()
+    logger.info("Styles initialization...")
+    styles.add(ParagraphStyle(name='CoverTitle', fontName=font_primary, fontSize=50, leading=42, alignment=TA_CENTER, spaceAfter=10, textColor=config_utils.colors_dictionary["COVER_TITLE_COLOR"]))
+    styles.add(ParagraphStyle(name="CoverSubtitle", fontName=font_primary, fontSize=20, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["COVER_SUBTITLE_COLOR"] , spaceAfter=20))
+    styles.add(ParagraphStyle(name="Footer", fontName=font_primary, fontSize=10, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["FOOTER_COLOR"], spaceAfter=0))
+    styles.add(ParagraphStyle(name="CategoryTitle", fontName=font_primary, fontSize=54, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["CATEGORY_TITLE_COLOR"], spaceAfter=20))
+    styles.add(ParagraphStyle(name="CompanyTitle", fontName=font_primary, fontSize=48, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["COMPANY_TITLE_COLOR"], spaceAfter=20))
+    styles.add(ParagraphStyle(name="TableCompanyName", fontName=font_primary, fontSize=8, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["TABLE_COMPANY_NAME_COLOR"], spaceAfter=0, spaceBefore=0, textTransform='uppercase'))
+    styles.add(ParagraphStyle(name="TableItem", fontName=font_primary, fontSize=11, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["TABLE_ITEM_NAME_COLOR"], spaceAfter=0))
+    styles.add(ParagraphStyle(name="TableItemPrice", fontName=font_primary, fontSize=12, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_PRICE_COLOR"], spaceAfter=0))
+    styles.add(ParagraphStyle(name="TableItemSize", fontName=font_primary, fontSize=10, alignment=0, textColor=config_utils.colors_dictionary["TABLE_ITEM_SIZE_COLOR"], spaceAfter=0))
+    styles.add(ParagraphStyle(name="TableItemBadge", fontName=font_primary, fontSize=10, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_NEWS_COLOR"], spaceAfter=0))
+    styles.add(ParagraphStyle(name="ParTitle1", fontName=font_primary, fontSize=30, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE1_COLOR"], spaceAfter=0))
+    styles.add(ParagraphStyle(name="ParTitle2", fontName=font_primary, fontSize=20, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE2_COLOR"], spaceAfter=0))
+    styles.add(ParagraphStyle(name="Par", fontName=font_primary, fontSize=12, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_COLOR"], spaceAfter=0))
+# ---------------------------------------------------
 locale.setlocale(locale.LC_ALL, config.get("System","LOCALE"))
 # Calcola larghezza disponibile
 USABLE_WIDTH = PAGE_WIDTH - PAGE_MARGIN - PAGE_MARGIN
@@ -273,8 +277,18 @@ def flush_1x3_row():
 #def build_pdf(file_path, folder_path, brk: bool, title, subtitle, footer):
 def build_pdf():
     global raw_1x3_counter
+    #---------------------------------------------------
     #
     logger.info("Init 'build_pdf'...")
+    #
+    # styles
+    _init_styles()
+    #
+    global raw_1x3_counter, raw_1x3_items, story
+    raw_1x3_counter = 0
+    raw_1x3_items = ["","",""]
+    story = []
+    #
     # file di output 
     formatted_datetime =  datetime.datetime.now().strftime("%Y%m%d_%H%M%S") # Formato Giorno/Mese/Anno
     pdf_file_name = f"{config_utils.path_dictionary['OUTPUT_PDF_FOLDER_PATH']}/{formatted_datetime}_Catalog.pdf"
@@ -290,7 +304,7 @@ def build_pdf():
         df = pd.read_excel(config_utils.excel_file)
     except Exception as e:
         logger.error("FILE EXCEL ERROR!! ", exc_info=True)
-        sys.exit
+        sys.exit()
     #
     previous_category = "" # la variabile che mi permette di capire se c'e' un cambio di categoria in modo da inserire una pagina con il titolo
     previous_company = "" # la variabile che mi permette di capire se c'e' un cambio di azienda in modo da inserire un titolo

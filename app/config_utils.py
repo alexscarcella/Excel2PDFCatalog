@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from app.logger import logger
 
-__version__ = "0.4.8 beta"
+__version__ = "0.5"
 
 # CONFIG_FILE relativo al file corrente, non alla working directory
 CONFIG_FILE = "config.json"
@@ -81,7 +81,7 @@ def load_config():
             new_title                 = config["title"]
             new_subtitle              = config["subtitle"]
             new_footer                = config["footer"]
-            new_flags   = {k: config[k]         for k in flags_dictionary}
+            new_flags   = {k: _parse_bool(config[k]) for k in flags_dictionary}
             new_colors  = {k: config[k]         for k in colors_dictionary}
             new_paths   = {k: Path(config[k])   for k in path_dictionary}
 
@@ -136,7 +136,7 @@ def save_config():
             logger.info("%s -> %s", k, str(v))
         #flags
         for k, v in flags_dictionary.items():
-            config[f"{k}"] = v
+            config[k] = v
             logger.info("%s -> %s", k, str(v))
 
         with open(CONFIG_FILE, 'w') as f:
@@ -144,4 +144,11 @@ def save_config():
     except (KeyError, json.JSONDecodeError, TypeError, ValueError) as e:
         logger.error("JSON Config file error (SAVE): %s", e, exc_info=True)
         sys.exit(1)
+
+def _parse_bool(v):
+    if isinstance(v, bool):
+        return v          # già bool nativo JSON → ok
+    if isinstance(v, str):
+        return v.strip().lower() == "true"   # gestisce "True", "False", "true", "false"
+    return bool(v)
 
