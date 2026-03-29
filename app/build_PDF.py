@@ -307,6 +307,9 @@ def build_pdf():
         if (r[XLS_BADGE] == "" or pd.isna(r[XLS_BADGE])):
             logger.warning(f"{r[XLS_ITEM]} - XLS_BADGE not defined")
             r[XLS_BADGE] = ""
+        if (r[XLS_COLUMN_IMG] == "" or pd.isna(r[XLS_COLUMN_IMG])):
+            logger.warning(f"{r[XLS_ITEM]} - XLS_COLUMN_IMG not defined. Set default value.")
+            r[XLS_COLUMN_IMG] = "default"
         try:
             formatted_price = ""
             if config_utils.flags_dictionary["HIDE_PRICES"] == False:
@@ -372,9 +375,7 @@ def build_pdf():
                 generate_image(800, 20, img_file_path)
                 img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
             else:
-               # img_file_path = f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/default.png"
                 img_file_path = Path(f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/default.png")
-                #img_file_path = os.path.join(f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}", "default.png")
                 if Path(img_file_path).exists():
                     logger.warning(f"Product image not founded! Load default image: {img_file_path}")
                     img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)  

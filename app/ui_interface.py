@@ -188,15 +188,28 @@ def build_UI_and_GO():
      grid_row= grid_row + 1
      tk.Label(frame_options, text="OPTIONS:").grid(row=grid_row, column=0, sticky="w", columnspan=2)
      grid_row= grid_row + 1
+     # 
+     chk_vars = {}
      for k, v in config_utils.flags_dictionary.items():
-          if v == True: chk_var = tk.BooleanVar(value=True)
-          if v == False: chk_var = tk.BooleanVar(value=False)
+          # if v == True: chk_var = tk.BooleanVar(value=True)
+          # if v == False: chk_var = tk.BooleanVar(value=False)
+          # chk = tk.Checkbutton(
+          #      frame_options, 
+          #      text=f"{k.replace('_',' ').capitalize()}", 
+          #      variable=chk_var, 
+          #      command=lambda key=k, var=chk_var: config_utils.flags_dictionary.update({key: var.get()})
+          # )
+          chk_var = tk.BooleanVar(value=v)
+          chk_vars[k] = chk_var  # <-- salvalo, altrimenti il garbage collector lo distrugge
+          def update_flag(key=k, var=chk_var):
+               config_utils.flags_dictionary[key] = var.get()
+               logger.info(f"{key} changed: {config_utils.flags_dictionary[key]}")
           chk = tk.Checkbutton(
-               frame_options, 
-               text=f"{k.replace('_',' ').capitalize()}", 
-               variable=chk_var, 
-               command=lambda key=k, var=chk_var: config_utils.flags_dictionary.update({key: var.get()})
-               )
+               frame_options,
+               text=k.replace("_", " ").capitalize(),
+               variable=chk_var,
+               command=update_flag
+          )
           chk.grid(row=grid_row, column=0, sticky="w", columnspan=2)
           grid_row= grid_row + 1
      # Separator orizzontale

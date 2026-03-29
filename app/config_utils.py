@@ -12,12 +12,13 @@ from app.logger import logger
 
 __version__ = "0.4.7 beta"
 
+# CONFIG_FILE relativo al file corrente, non alla working directory
+CONFIG_FILE = "config.json"
+
 # valori di default che poi vengono sovrascritti
 # dal file di configurazione JSON
 excel_file = f"{os.getcwd()}/example_excel/Product list example.xlsx"
 txt_intro_file = f"{os.getcwd()}/txt_intros/intro.txt"
-# break_page_company = True
-# generate_random_images = False
 title = "CHANGE THE TITLE" 
 subtitle = "Change this subtitle" 
 footer = "Change this footer" 
@@ -59,94 +60,88 @@ flags_dictionary = {
     "FULL_PAGE_CATEGORY": True
 }
 
-# [Colors defaults]
-# COVER_TITLE = #ffffff
-# COVER_SUBTITLE = #ffffff
-# COVER_BACKGROUND = #c37225
-# FOOTER = #000000
-# CATEGORY_TITLE = #000000
-# CATEGORY_BACKGROUND = #c37225
-# COMPANY_TITLE = #000000
-# PRODUCTS_BACKGROUND = #e6dbc6
-# TABLE_COMPANY_NAME = #c37225
-# TABLE_ITEM_NAME = #c37225
-# TABLE_ITEM_PRICE = #117703
-# TABLE_ITEM_SIZE = #c37225
-# TABLE_ITEM_NEWS = #c37225
-# TABLE_BACKGROUND = #ffffff
-# TABLE_BORDER = #c37225
-# BODY_BACKGROUND = #e6dbc6
-# PARAGRAPH_TITLE1 = #c37225
-# PARAGRAPH_TITLE2 = #000000
-# PARAGRAPH = #000000
-
-CONFIG_FILE = 'config.json'
-
 def load_config():
     global excel_file, txt_intro_file, title, subtitle, footer
 
-    logger.info("JSON Config file reading...")
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, 'r') as f:
-            try:
-                config = json.load(f)
-                #
-                excel_file = config["excel_file"]
-                txt_intro_file = config["txt_intro_file"]
-                title = config["title"]
-                subtitle = config["subtitle"]
-                footer = config["footer"]
-                #
-                # colori
-                for k, v in colors_dictionary.items():
-                    colors_dictionary[k] = config[k]
-                    logger.info(f"{v} -> {k}")
-                #
-                # paths
-                for k, v in path_dictionary.items():
-                    path_dictionary[k] = Path(config[k])
-                    logger.info(f"{str(v)} -> {k}")
-                #
-                # flags
-                for k, v in flags_dictionary.items():
-                    flags_dictionary[k] = eval(config[k])
-                    logger.info(f"{str(v)} -> {k}")
-            except:
-                logger.error("JSON Config file error", exc_info=True)
-                config = {}
-                sys.exit()
-    else:
-        config = {}
-        logger.info("JSON Config file empty. Creating new file...")
+    #logger.info("JSON Config file reading...")
+    if not os.path.exists(CONFIG_FILE):
+        logger.warning("JSON Config file not found. Creating new file...")
         save_config()
+        return
+
+    
+    with open(CONFIG_FILE, 'r') as f:
+        logger.info(CONFIG_FILE + " founded. Loading config...")
+        try:
+            config = json.load(f)
+
+            # 1. Valida/estrai tutto prima di toccare qualsiasi globale
+            new_excel_file            = config["excel_file"]
+            new_txt_intro_file        = config["txt_intro_file"]
+            new_title                 = config["title"]
+            new_subtitle              = config["subtitle"]
+            new_footer                = config["footer"]
+            new_flags   = {k: config[k]         for k in flags_dictionary}
+            new_colors  = {k: config[k]         for k in colors_dictionary}
+            new_paths   = {k: Path(config[k])   for k in path_dictionary}
+
+            # 2. Solo se tutto è andato bene, applica
+            excel_file              = new_excel_file
+            txt_intro_file          = new_txt_intro_file
+            title                   = new_title
+            subtitle                = new_subtitle
+            footer                  = new_footer
+            flags_dictionary.update(new_flags)
+            colors_dictionary.update(new_colors)
+            path_dictionary.update(new_paths)
+
+            # 3. Logga tutto
+            logger.info("excel_file -> %s",     excel_file)
+            logger.info("txt_intro_file -> %s", txt_intro_file)
+            logger.info("title -> %s",          title)
+            logger.info("subtitle -> %s",       subtitle)
+            logger.info("footer -> %s",         footer)
+            for k, v in flags_dictionary.items():
+                logger.info("%s -> %s", k, v)
+            for k, v in colors_dictionary.items():
+                logger.info("%s -> %s", k, v)
+            for k, v in path_dictionary.items():
+                logger.info("%s -> %s", k, str(v))
+
+        except (KeyError, json.JSONDecodeError, TypeError, ValueError) as e:
+            logger.error("JSON Config file error (READ): %s", e, exc_info=True)
+            #config = {}
+            sys.exit(1)
+
         
 
 def save_config():
     try:
         logger.info("JSON Config file saving...")
-        config = {}
-        # parametri
-        config["excel_file"] = excel_file
-        config["txt_intro_file"] = txt_intro_file
-        config["title"] = title 
-        config["subtitle"] = subtitle 
-        config["footer"] = footer
+        config = {
+            "excel_file": excel_file,
+            "txt_intro_file": txt_intro_file,
+            "title":      title,
+            "subtitle":   subtitle,
+            "footer":     footer,
+        }
         # colori
         for k, v in colors_dictionary.items():
             config[f"{k}"] = v
-            logger.info(f"{k} -> {v}")
+            logger.info("%s -> %s", k, str(v))
+            # logger.info(f"{k} -> {v}")
         #paths
         for k, v in path_dictionary.items():
             config[f"{k}"] = str(v)
-            logger.info(f"{k} -> {str(v)}")
+            logger.info("%s -> %s", k, str(v))
         #flags
         for k, v in flags_dictionary.items():
-            config[f"{k}"] = str(v)
-            logger.info(f"{k} -> {str(v)}")
+            config[f"{k}"] = v
+            logger.info("%s -> %s", k, str(v))
 
         with open(CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=4)
-    except:
-        logger.error("JSON Config file save error", exc_info=True)
-        sys.exit()
+    except (KeyError, json.JSONDecodeError, TypeError, ValueError) as e:
+        logger.error("JSON Config file error (SAVE): %s", e, exc_info=True)
+        sys.exit(1)
 
