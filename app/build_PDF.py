@@ -276,7 +276,7 @@ def flush_1x3_row():
 # brk: booleano che determina se inserire o meno un salto pagina tra le aziende
 #def build_pdf(file_path, folder_path, brk: bool, title, subtitle, footer):
 def build_pdf():
-    global raw_1x3_counter
+    global raw_1x3_counter, raw_1x3_items, story
     #---------------------------------------------------
     #
     logger.info("Init 'build_pdf'...")
@@ -284,7 +284,6 @@ def build_pdf():
     # styles
     _init_styles()
     #
-    global raw_1x3_counter, raw_1x3_items, story
     raw_1x3_counter = 0
     raw_1x3_items = ["","",""]
     story = []
@@ -381,7 +380,7 @@ def build_pdf():
             base_image_file_path = Path(f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/{r[XLS_COLUMN_IMG]}")
             img_file_path = load_image_path(base_image_file_path)
             if img_file_path is not None:
-                logger.warning(f"Product image founded! {img_file_path}")
+                logger.info(f"Product image founded! {img_file_path}")
                 img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
             elif config_utils.flags_dictionary["GENERATE_RANDOM_PRODUCTS_IMAGE"] == True:   
                 img_file_path = f"./tmp/{r[XLS_COLUMN_IMG]}.png"
@@ -459,8 +458,8 @@ def build_pdf():
     try:
         doc.build(story)
         logger.info(f"******* END OK --> '{pdf_file_name}' created ")
-    except:
-        logger.error("", exc_info=True)
-        sys.exit()
+    except Exception as e:
+        logger.error("doc.build() failed: %s", e, exc_info=True)
+        sys.exit(1)
     
     

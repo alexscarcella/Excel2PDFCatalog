@@ -59,9 +59,9 @@ def build_UI_and_GO():
                     messagebox.showinfo("Executed", "Operation complete!")
                     config_utils.save_config()
 
-     def update_break_page_company():
-          config_utils.break_page_company = chk1.get()
-          logger.info(f"break_page_company changed: {config_utils.break_page_company}")
+     # def update_break_page_company():
+     #      #config_utils.break_page_company = chk1.get() #TODO da rivedere, non funziona
+     #      logger.info(f"break_page_company changed: {config_utils.break_page_company}")
      
      def update_title(*args):
           config_utils.title = entry_var_title.get()
@@ -313,7 +313,7 @@ def check_parameters():
      check = True
      if not Path(config_utils.excel_file).exists(): 
           check = False
-          filedialog.showerror("Error", f"Configured file not found: {config_utils.CONFIG_FILE}")
+          filedialog.showerror("Error", f"Configured file not found: {config_utils.excel_file}")
      for k, v in config_utils.path_dictionary.items():
            if not Path(v).exists(): 
                 check = False
