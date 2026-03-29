@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from app.logger import logger
 
-__version__ = "0.4.7 beta"
+__version__ = "0.4.8 beta"
 
 # CONFIG_FILE relativo al file corrente, non alla working directory
 CONFIG_FILE = "config.json"
