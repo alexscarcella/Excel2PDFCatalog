@@ -16,9 +16,14 @@ pip install -r app/requirements.txt
 
 # run
 python Excel2PDFCatalog.py
+
+# tests (stdlib unittest, no extra dependency)
+python -m unittest discover -s tests -v
+# single test module
+python -m unittest tests.test_config_utils -v
 ```
 
-There is no lint, test, or build tooling configured for local development (no pytest/unittest, no CI running on push — the only workflow is a manual `workflow_dispatch` PyInstaller packaging job for releases). Validate changes by running the GUI and generating a PDF against `example_excel/Product list example.xlsx`, checking `logs/app.log` for warnings/errors.
+`tests/` has a minimal `unittest` suite for `config_utils.py` (load/save fallback behavior) and `images_utils.py` (`load_image_path`) — no framework beyond stdlib is required. There is no lint or build tooling configured for local development, and no CI running on push — the only workflow is a manual `workflow_dispatch` PyInstaller packaging job for releases. There's no coverage for the ReportLab/Tkinter side (`build_PDF.py`, `ui_interface.py`); validate changes there by running the GUI and generating a PDF against `example_excel/Product list example.xlsx`, checking `logs/app.log` for warnings/errors.
 
 ## Architecture
 
@@ -37,7 +42,9 @@ There is no lint, test, or build tooling configured for local development (no py
 
 **Product images:** looked up in `PRODUCTS_IMAGES_FOLDER_PATH` via `images_utils.load_image_path()`, which tries `.png`/`.jpg`/`.jpeg` in that order against the filename from the Excel image column. If missing, falls back to a procedurally generated placeholder blob image (`images_utils.generate_image()`, written under `tmp/`) when `GENERATE_RANDOM_PRODUCTS_IMAGE` is set, otherwise to `PRODUCTS_IMAGES_FOLDER_PATH/default.png`.
 
-**Logging:** shared `AppLogger` in `app/logger.py`, rotating file handler at `logs/app.log` (1MB × 5 backups) plus console. Use `logger.info/warning/error` — this is the primary debugging surface since there are no tests.
+**Logging:** shared `AppLogger` in `app/logger.py`, rotating file handler at `logs/app.log` (1MB × 5 backups) plus console. Use `logger.info/warning/error` — this remains the primary debugging surface for the ReportLab/Tkinter code paths that the `tests/` suite doesn't cover.
+
+**`build_pdf()` internals:** the per-row loop is decomposed into helpers in `app/build_PDF.py` — `_clean_row_fields` (fills/logs missing Excel cells), `_format_price`, `_insert_category_page`/`_insert_company_page` (pagination side effects on the module-level `story` list), `_load_product_image` (also sanitizes the image filename from Excel via `Path(...).name` to prevent path traversal), and `_build_product_card` (builds the ReportLab `Table` for one product). `build_pdf()` itself just orchestrates these per row.
 
 ## Cross-cutting gotchas when changing things
 

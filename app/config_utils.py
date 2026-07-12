@@ -11,7 +11,11 @@ from app.logger import logger
 
 __version__ = "0.5.1"
 
-# CONFIG_FILE relativo al file corrente, non alla working directory
+# CONFIG_FILE e' un path relativo alla working directory del processo (cwd),
+# NON alla posizione di questo modulo: l'app va quindi avviata dalla cartella
+# principale del progetto (dove si trova anche Excel2PDFCatalog.py).
+# Questo e' l'UNICO file di configurazione runtime effettivo: un eventuale
+# "app/config.json" non viene mai letto da questo modulo.
 CONFIG_FILE = "config.json"
 
 # valori di default che poi vengono sovrascritti

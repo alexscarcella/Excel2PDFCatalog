@@ -39,7 +39,12 @@ class CambiaHeader(Flowable):
 
 
 # -------------------------------------------------
-warnings.simplefilter("ignore")
+# Prima si ignoravano TUTTI i warning (warnings.simplefilter("ignore")), rischiando di
+# nascondere anche FutureWarning/DeprecationWarning reali (es. di pandas quando si scrive
+# una stringa placeholder in una colonna numerica, vedi _clean_row_fields). Ora si silenzia
+# solo l'UserWarning "rumoroso" e non azionabile che openpyxl emette per i fogli senza uno
+# stile di default esplicito.
+warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 # -------------------------------------------------
 
 def _fatal_startup_error(message):
@@ -296,11 +301,175 @@ def flush_1x3_row():
                     rowHeights=[USABLE_HEIGHT/3])
     raw_1x3_counter = 0
 
+#=========================================================
+# ---------- funzioni di supporto per build_pdf() --------
+#=========================================================
+# REFACTOR (punto 7 della revisione): il corpo di build_pdf() era un unico
+# ciclo di ~180 righe che mescolava validazione dei dati Excel, logica di
+# paginazione (categoria/azienda), caricamento immagini e costruzione delle
+# tabelle ReportLab. E' stato scomposto nelle funzioni sottostanti, ciascuna
+# con una singola responsabilita', per migliorarne leggibilita' e manutenibilita'.
+# Il comportamento originale e' stato preservato; le uniche differenze volute
+# sono segnalate nei commenti di ogni funzione.
+
+def _clean_row_fields(r):
+    """Sanifica i campi obbligatori di una riga Excel: se un valore e' vuoto/NaN,
+    lo sostituisce con un default e registra un warning nel log."""
+    # MODIFICA (punto 10 della revisione): in origine solo CATEGORY, COMPANY, BADGE
+    # e COLUMN_IMG venivano validati; ITEM e SIZE mancanti finivano nel PDF come
+    # celle vuote senza alcun warning. Ora vengono sanificati anch'essi, in modo
+    # coerente con gli altri campi. ITEM viene controllato per primo perche' il
+    # suo valore e' usato nei messaggi di log degli altri controlli.
+    if r[XLS_ITEM] == "" or pd.isna(r[XLS_ITEM]):
+        logger.warning("XLS_ITEM not defined for a row (category=%s)", r[XLS_CATEGORY])
+        r[XLS_ITEM] = "--------"
+    if r[XLS_CATEGORY] == "" or pd.isna(r[XLS_CATEGORY]):
+        logger.warning(f"{r[XLS_ITEM]} - XLS_CATEGORY not defined")
+        r[XLS_CATEGORY] = "--------"
+    if r[XLS_COMPANY] == "" or pd.isna(r[XLS_COMPANY]):
+        logger.warning(f"{r[XLS_ITEM]} - XLS_COMPANY not defined")
+        r[XLS_COMPANY] = "--------"
+    if r[XLS_BADGE] == "" or pd.isna(r[XLS_BADGE]):
+        logger.warning(f"{r[XLS_ITEM]} - XLS_BADGE not defined")
+        r[XLS_BADGE] = ""
+    if r[XLS_COLUMN_IMG] == "" or pd.isna(r[XLS_COLUMN_IMG]):
+        logger.warning(f"{r[XLS_ITEM]} - XLS_COLUMN_IMG not defined. Set default value.")
+        r[XLS_COLUMN_IMG] = "default"
+    if r[XLS_SIZE] == "" or pd.isna(r[XLS_SIZE]):  # nuovo controllo (punto 10)
+        logger.warning(f"{r[XLS_ITEM]} - XLS_SIZE not defined")
+        r[XLS_SIZE] = ""
+    return r
+
+
+def _format_price(r):
+    """Formatta il prezzo del prodotto (stringa vuota se nascosto o non valido)."""
+    formatted_price = ""
+    try:
+        if config_utils.flags_dictionary["HIDE_PRICES"] == False:
+            formatted_price = f"€ {float(r[XLS_PRICE]):.2f}"
+    except (ValueError, TypeError, KeyError):
+        logger.warning(f"{r[XLS_ITEM]} - XLS_PRICE not defined")
+    return formatted_price
+
+
+def _insert_category_page(category_name):
+    """Pubblica la griglia 3x3 residua e, se FULL_PAGE_CATEGORY e' attivo,
+    inserisce una pagina dedicata al titolo della categoria, prima di passare
+    al template dei prodotti. Va chiamata solo quando la categoria cambia."""
+    global story
+    if raw_1x3_items[0] != "":
+        flush_1x3_row()  # pubblico eventuali prodotti residui della categoria precedente
+    if config_utils.flags_dictionary["FULL_PAGE_CATEGORY"] == True:
+        story.append(NextPageTemplate('Category'))  # scelgo il nuovo template
+        story.append(PageBreak())  # forzo il cambio pagina
+        logger.info(f"Category: {category_name}")
+        story.append(Spacer(1, 5 * cm))
+        story.append(Paragraph(category_name, styles['CategoryTitle']))
+    story.append(NextPageTemplate('Matrix_3x3'))  # scelgo il template per i prodotti
+    if config_utils.flags_dictionary["BREAK_PAGE_COMPANY"] == False:
+        story.append(PageBreak())
+
+
+def _insert_company_page(r):
+    """Se BREAK_PAGE_COMPANY e' attivo, pubblica la griglia residua e forza un
+    cambio pagina con l'header azienda/categoria; altrimenti si limita a
+    pubblicare la griglia residua. Va chiamata solo quando l'azienda cambia."""
+    global story
+    if raw_1x3_items[0] != "":
+        flush_1x3_row()  # se ho prodotti residui nella riga, li pubblico
+    if config_utils.flags_dictionary["BREAK_PAGE_COMPANY"] == True:
+        story.append(CambiaHeader(r[XLS_CATEGORY], r[XLS_COMPANY], colors.steelblue))
+        story.append(PageBreak())
+    logger.info(f"     Company: {r[XLS_COMPANY]}")
+
+
+def _load_product_image(r):
+    """Carica l'immagine del prodotto cercando prima il file corrispondente al
+    codice Excel, poi (se abilitato) generandone una casuale, infine ricadendo
+    su default.png. Ritorna un oggetto reportlab Image, oppure None."""
+    IMAGE_SIZE = 4.4 * cm
+    img = None
+    try:
+        # FIX SICUREZZA (punto 8 della revisione): il valore della cella Excel veniva
+        # concatenato al path senza sanitizzazione, permettendo path traversal in lettura
+        # (es. una cella con "../../file" avrebbe potuto far leggere file fuori dalla
+        # cartella immagini). Path(...).name tiene solo il nome del file, scartando
+        # qualunque componente di percorso.
+        safe_image_name = Path(str(r[XLS_COLUMN_IMG])).name
+        base_image_file_path = Path(f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/{safe_image_name}")
+        img_file_path = load_image_path(base_image_file_path)
+        if img_file_path is not None:
+            logger.info(f"Product image founded! {img_file_path}")
+            img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
+        elif config_utils.flags_dictionary["GENERATE_RANDOM_PRODUCTS_IMAGE"] == True:
+            img_file_path = f"./tmp/{safe_image_name}.png"
+            logger.warning(f"Product image not founded! Build new file... {img_file_path}")
+            generate_image(800, 20, img_file_path)
+            img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
+        else:
+            img_file_path = Path(f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/default.png")
+            if Path(img_file_path).exists():
+                logger.warning(f"Product image not founded! Load default image: {img_file_path}")
+                img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
+            else:
+                logger.error(f"Default image not founded! {img_file_path}")
+    except (OSError, KeyError):
+        logger.error("Product image not founded! ", exc_info=True)
+    return img
+
+
+def _build_product_card(r, img, formatted_price):
+    """Costruisce la tabella ReportLab (scheda prodotto) con immagine, azienda,
+    nome, formato/prezzo e badge, pronta per essere inserita nella griglia 3x3."""
+    TABLE_GAP = 0.3 * cm
+    formatted_company = f"<b><i>{r[XLS_COMPANY]}</i></b>"
+    formatted_item = f"<b>{r[XLS_ITEM]}</b>"
+    formatted_size = f"{r[XLS_SIZE]}"
+    formatted_badge = f"{r[XLS_BADGE]}"
+
+    info = [
+        [img, ""],
+        [Paragraph(formatted_company, styles['TableCompanyName']), ""],
+        [Paragraph(formatted_item, styles['TableItem']), ""],
+        [Paragraph(formatted_size, styles['TableItemSize']), Paragraph(formatted_price, styles['TableItemPrice'])]
+    ]
+    table_item = Table(info, colWidths=[USABLE_WIDTH/6-TABLE_GAP, USABLE_WIDTH/6-TABLE_GAP], rowHeights=[None, 0.5*cm, 1.1*cm, None])
+    table_item.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
+        ("VALIGN", (0, 0), (-1,-1), "MIDDLE"),
+        ('ALIGN',(0,0),(0,-1),'CENTER'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 0.2 * cm),
+        ('TOPPADDING', (0,0), (-1,-1), 0.3 * cm),
+        ('RIGHTPADDING', (0,0), (-1,-1), 0.3 * cm),
+        ('LEFTPADDING', (0,0), (-1,-1), 0.3 * cm),
+        ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
+        ('BOX', (0, 0), (-1, -1), 2, config_utils.colors_dictionary["TABLE_BORDER_COLOR"]),
+        ('SPAN',(0,0),(-1,0)),
+        ('SPAN',(0,1),(-1,1)),
+        ('SPAN',(0,2),(-1,2)),
+        ('ROUNDEDCORNERS', [10,10,10,10])
+    ]))
+    logger.info(f"            {r[XLS_CATEGORY]} - {r[XLS_COMPANY]} - {r[XLS_ITEM]} - {r[XLS_SIZE]} - OK")
+
+    # inserisco una tabella più grande, che contenga la scheda
+    # ed abbia una prima riga per inserire il badge, tipo "NOVITà"
+    table_item_big_info = [
+        [Paragraph(formatted_badge, styles['TableItemBadge'])],   # riga 1
+        [table_item]                                              # riga 2
+    ]
+    table_item_big = Table(table_item_big_info, rowHeights=[0.3*cm, None])
+    table_item_big.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"]),
+        ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"]),
+        ("VALIGN", (0, 0), (0,-1), "BOTTOM"),
+        ("VALIGN", (0, 0), (1,-1), "TOP"),
+        ('ALIGN',(0,0),(-1,-1),'CENTER'),
+        ("VALIGN", (0, 0), (-1,-1), "MIDDLE")
+    ]))
+    return table_item_big
+
+
 # metodo che costruisce il file PDF
-# i parametri:
-# file: Path del file del foglio excel da processare
-# brk: booleano che determina se inserire o meno un salto pagina tra le aziende
-#def build_pdf(file_path, folder_path, brk: bool, title, subtitle, footer):
 def build_pdf():
     global raw_1x3_counter, raw_1x3_items, story
     #---------------------------------------------------
@@ -314,14 +483,14 @@ def build_pdf():
     raw_1x3_items = ["","",""]
     story = []
     #
-    # file di output 
+    # file di output
     formatted_datetime =  datetime.datetime.now().strftime("%Y%m%d_%H%M%S") # Formato Giorno/Mese/Anno
     pdf_file_name = f"{config_utils.path_dictionary['OUTPUT_PDF_FOLDER_PATH']}/{formatted_datetime}_Catalog.pdf"
     #
     doc = BaseDocTemplate(pdf_file_name, pagesize=A4, leftMargin=PAGE_MARGIN, rightMargin=PAGE_MARGIN, topMargin=PAGE_MARGIN, bottomMargin=PAGE_MARGIN, title=None, author=None)
     doc.addPageTemplates([cover_page_template, body_page_template, category_page_template, matrix_3x3_page_template])
     #
-    insert_cover(config_utils.title, config_utils.subtitle, config_utils.footer) 
+    insert_cover(config_utils.title, config_utils.subtitle, config_utils.footer)
     #
     insert_body(config_utils.footer)
     # leggo il file:
@@ -333,159 +502,33 @@ def build_pdf():
     #
     previous_category = "" # la variabile che mi permette di capire se c'e' un cambio di categoria in modo da inserire una pagina con il titolo
     previous_company = "" # la variabile che mi permette di capire se c'e' un cambio di azienda in modo da inserire un titolo
-    TABLE_GAP = 0.3 * cm
     #
     for _, r in df.iterrows():     # scorro le righe nel file
-        # verifico che non ci siano campi nullli o non validi:
-        if (r[XLS_CATEGORY] == "" or pd.isna(r[XLS_CATEGORY])):
-            logger.warning(f"{r[XLS_ITEM]} - XLS_CATEGORY not defined")
-            r[XLS_CATEGORY] = "--------"
-        if (r[XLS_COMPANY] == "" or pd.isna(r[XLS_COMPANY])):
-            logger.warning(f"{r[XLS_ITEM]} - XLS_COMPANY not defined")
-            r[XLS_COMPANY] = "--------"
-        if (r[XLS_BADGE] == "" or pd.isna(r[XLS_BADGE])):
-            logger.warning(f"{r[XLS_ITEM]} - XLS_BADGE not defined")
-            r[XLS_BADGE] = ""
-        if (r[XLS_COLUMN_IMG] == "" or pd.isna(r[XLS_COLUMN_IMG])):
-            logger.warning(f"{r[XLS_ITEM]} - XLS_COLUMN_IMG not defined. Set default value.")
-            r[XLS_COLUMN_IMG] = "default"
-        try:
-            formatted_price = ""
-            if config_utils.flags_dictionary["HIDE_PRICES"] == False:
-                formatted_price=f"€ {float(r[XLS_PRICE]):.2f}"
-        except (ValueError, TypeError, KeyError):
-            formatted_price = ""
-            logger.warning(f"{r[XLS_ITEM]} - XLS_PRICE not defined")
-        ## 
-        ## aggiorno lo stato dell'header per il template della pagina dei prodotti
-        #header_state["titolo"] = r[XLS_CATEGORY]
-        ## story.append(CambiaHeader(r[XLS_CATEGORY], colors.steelblue))
-        #header_state["colore"] = colors.darkgreen
-        ## 
-        # -----------------------------------------------  
+        r = _clean_row_fields(r)  # verifico che non ci siano campi nulli o non validi
+        formatted_price = _format_price(r)
+
         # ---------- verifico per inserire la pagina del titolo della categoria
         if previous_category != r[XLS_CATEGORY]:
-            if raw_1x3_items[0] != "": 
-                flush_1x3_row() # se ho prodotti residui nella riga, li pubblico 
-            if config_utils.flags_dictionary["FULL_PAGE_CATEGORY"] == True:
-                story.append(NextPageTemplate('Category')) # scelgo il nuovo template
-                story.append(PageBreak()) # forzo il cambio pagina
-                logger.info(f"Category: {r[XLS_CATEGORY]}")
-                story.append(Spacer(1, 5 * cm))
-                story.append(Paragraph(r[XLS_CATEGORY], styles['CategoryTitle']))
-            story.append(NextPageTemplate('Matrix_3x3')) #scelgo il template per i prodotti
-            previous_category = r[XLS_CATEGORY] # aggiorno la variabile di controllo della categoria
-            previous_company="" # resetto la variabile di controllo della company
-            if config_utils.flags_dictionary["BREAK_PAGE_COMPANY"] == False:
-                story.append(PageBreak())
-        # -----------------------------------------------  
+            _insert_category_page(r[XLS_CATEGORY])
+            previous_category = r[XLS_CATEGORY]  # aggiorno la variabile di controllo della categoria
+            previous_company = ""  # resetto la variabile di controllo della company
+
         # ---------- verifico per inserire il titolo del produttore
-        if config_utils.flags_dictionary["BREAK_PAGE_COMPANY"] == True:
-            if previous_company != r[XLS_COMPANY]: # se l'azienda è diversa dalla precedente, cambio pagine tra le aziende
-                if raw_1x3_items[0] != "": 
-                    flush_1x3_row() # se ho prodotti residui nella riga, li pubblico
-                story.append(CambiaHeader(r[XLS_CATEGORY], r[XLS_COMPANY],colors.steelblue))
-                story.append(PageBreak())
-                previous_company = r[XLS_COMPANY]
-                logger.info(f"     Company: {r[XLS_COMPANY]}")
-                #story.append(Paragraph(r[XLS_COMPANY], styles['CompanyTitle']))
-                #story.append(Spacer(1, 6*cm))
-        else:
-            if previous_company != r[XLS_COMPANY]: # se l'azienda è diversa dalla precedente, vado a capo ma non cambio pagina
-                if raw_1x3_items[0] != "": 
-                    flush_1x3_row() # se ho prodotti residui nella riga, li pubblico
-                previous_company = r[XLS_COMPANY]
-                logger.info(f"     Company: {r[XLS_COMPANY]}")
+        if previous_company != r[XLS_COMPANY]:  # se l'azienda è diversa dalla precedente
+            _insert_company_page(r)
+            previous_company = r[XLS_COMPANY]
 
-        # ------------------------------------------------------  
-        # --------- Leggo le informazioni del singolo prodotto
-        # gestisco le immagini del prodotto:
-        IMAGE_SIZE = 4.4 * cm
-        img = None
-        try:
-            base_image_file_path = Path(f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/{r[XLS_COLUMN_IMG]}")
-            img_file_path = load_image_path(base_image_file_path)
-            if img_file_path is not None:
-                logger.info(f"Product image founded! {img_file_path}")
-                img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
-            elif config_utils.flags_dictionary["GENERATE_RANDOM_PRODUCTS_IMAGE"] == True:   
-                img_file_path = f"./tmp/{r[XLS_COLUMN_IMG]}.png"
-                logger.warning(f"Product image not founded! Build new file... {img_file_path}")
-                generate_image(800, 20, img_file_path)
-                img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
-            else:
-                img_file_path = Path(f"{config_utils.path_dictionary['PRODUCTS_IMAGES_FOLDER_PATH']}/default.png")
-                if Path(img_file_path).exists():
-                    logger.warning(f"Product image not founded! Load default image: {img_file_path}")
-                    img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)  
-                else:
-                    logger.error(f"Default image not founded! {img_file_path}")
-        except (OSError, KeyError):
-            logger.error("Product image not founded! ", exc_info=True)
-        
-        formatted_company = f"<b><i>{r[XLS_COMPANY]}</i></b>"
-        formatted_item = f"<b>{r[XLS_ITEM]}</b>"
-        formatted_size=f"{r[XLS_SIZE]}"
-        formatted_badge=f"{r[XLS_BADGE]}"
-        
-        info = [
-            [img,""],
-            [Paragraph(formatted_company, styles['TableCompanyName']),""],
-            [Paragraph(formatted_item, styles['TableItem']),""],
-            [Paragraph(formatted_size, styles['TableItemSize']), Paragraph(formatted_price, styles['TableItemPrice'])]
-        ]
-        table_item = Table(info, colWidths=[USABLE_WIDTH/6-TABLE_GAP, USABLE_WIDTH/6-TABLE_GAP], rowHeights=[None, 0.5*cm, 1.1*cm, None])
-        table_item.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
-            ("VALIGN", (0, 0), (-1,-1), "MIDDLE"),
-            ('ALIGN',(0,0),(0,-1),'CENTER'),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 0.2 * cm),
-            ('TOPPADDING', (0,0), (-1,-1), 0.3 * cm),
-            ('RIGHTPADDING', (0,0), (-1,-1), 0.3 * cm),
-            ('LEFTPADDING', (0,0), (-1,-1), 0.3 * cm),
-            ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
-            ('BOX', (0, 0), (-1, -1), 2, config_utils.colors_dictionary["TABLE_BORDER_COLOR"]),
-            ('SPAN',(0,0),(-1,0)),
-            ('SPAN',(0,1),(-1,1)),
-            ('SPAN',(0,2),(-1,2)),
-            ('ROUNDEDCORNERS', [10,10,10,10])
-            # ('TEXTCOLOR', (0,0), (-1,-1), foreground_light),
-            # ('ALIGN',(0,0),(-1,-1),'LEFT'),
-            # ('ALIGN',(-1,-1),(-1,-1),'RIGHT'),
-            # ('FONTNAME', (0,0), (-1, -1), 'Helvetica'),
-            # ('FONTSIZE', (0,0), (-1,-1), 9),
-        ]))
-        logger.info(f"            {r[XLS_CATEGORY]} - {r[XLS_COMPANY]} - {r[XLS_ITEM]} - {r[XLS_SIZE]} - OK")
-        
-        # inserisco una tabella più grande, che contenga la scheda
-        # ed abbia una prima riga per inserire il badge, tipo "NOVITà"
-        table_item_big_info = [
-            [Paragraph(formatted_badge, styles['TableItemBadge'])],   # riga 1
-            [table_item]                                            # riga 2
-            ]
-        table_item_big=Table(table_item_big_info, rowHeights=[0.3*cm, None])
-        table_item_big.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"]),
-            ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"]),
-            ("VALIGN", (0, 0), (0,-1), "BOTTOM"),
-            ("VALIGN", (0, 0), (1,-1), "TOP"),
-            ('ALIGN',(0,0),(-1,-1),'CENTER'),
-            ("VALIGN", (0, 0), (-1,-1), "MIDDLE")
-        ]))
+        # --------- Leggo le informazioni del singolo prodotto e costruisco la scheda
+        img = _load_product_image(r)
+        raw_1x3_items[raw_1x3_counter] = _build_product_card(r, img, formatted_price)
 
-        raw_1x3_items[raw_1x3_counter] = table_item_big
-
-
-        #raw_1x3_items[raw_1x3_counter] = table_item
         raw_1x3_counter = raw_1x3_counter + 1
         if raw_1x3_counter == 3: flush_1x3_row()
     logger.info(f"Read all items in XLSX file")
-    
+
     try:
         doc.build(story)
         logger.info(f"******* END OK --> '{pdf_file_name}' created ")
     except Exception as e:
         logger.error("doc.build() failed: %s", e, exc_info=True)
         sys.exit(1)
-    
-    
