@@ -6,6 +6,7 @@ import locale
 import configparser
 import random
 import os
+from tkinter import messagebox
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether, PageBreak, NextPageTemplate
 from reportlab.platypus.tableofcontents import TableOfContents
@@ -40,27 +41,49 @@ class CambiaHeader(Flowable):
 # -------------------------------------------------
 warnings.simplefilter("ignore")
 # -------------------------------------------------
+
+def _fatal_startup_error(message):
+    # Errore non recuperabile in fase di inizializzazione del modulo: senza una
+    # mappatura colonne Excel valida l'app non puo' generare nulla, quindi si
+    # avvisa l'utente (anche se la finestra principale non e' ancora aperta)
+    # e si esce in modo controllato invece di lasciar propagare un traceback.
+    logger.critical(message)
+    try:
+        messagebox.showerror("Excel2PDFCatalog - Startup error", message)
+    except Exception:
+        pass
+    sys.exit(1)
+
 # Crea un oggetto ConfigParser
 config = configparser.ConfigParser()
-config.read('Excel2PDFCatalog.config')
-#---------------------------------------------------
-# Mapping foglio EXCEL
-XLS_CATEGORY = config.get("Excel","XLS_COLUMN_CATEGORY")
-XLS_COMPANY = config.get("Excel","XLS_COLUMN_COMPANY")
-XLS_ITEM = config.get("Excel","XLS_COLUMN_ITEM")
-XLS_SIZE = config.get("Excel","XLS_COLUMN_SIZE")
-XLS_PRICE = config.get("Excel","XLS_COLUMN_PRICE")
-XLS_COLUMN_DESCRIPTION = config.get("Excel","XLS_COLUMN_DESCRIPTION")
-XLS_COLUMN_IMG = config.get("Excel","XLS_COLUMN_IMG")
-XLS_BADGE = config.get("Excel","XLS_BADGE")
-#---------------------------------------------------
-# dimensioni foglio 
-PAGE_WIDTH, PAGE_HEIGHT  = A4
-PAGE_MARGIN = int(config.get("Layout","MARGIN")) * cm
+if not config.read('Excel2PDFCatalog.config'):
+    _fatal_startup_error("Configuration file 'Excel2PDFCatalog.config' not found or unreadable.")
+
+try:
+    #---------------------------------------------------
+    # Mapping foglio EXCEL
+    XLS_CATEGORY = config.get("Excel","XLS_COLUMN_CATEGORY")
+    XLS_COMPANY = config.get("Excel","XLS_COLUMN_COMPANY")
+    XLS_ITEM = config.get("Excel","XLS_COLUMN_ITEM")
+    XLS_SIZE = config.get("Excel","XLS_COLUMN_SIZE")
+    XLS_PRICE = config.get("Excel","XLS_COLUMN_PRICE")
+    XLS_COLUMN_DESCRIPTION = config.get("Excel","XLS_COLUMN_DESCRIPTION")
+    XLS_COLUMN_IMG = config.get("Excel","XLS_COLUMN_IMG")
+    XLS_BADGE = config.get("Excel","XLS_BADGE")
+    #---------------------------------------------------
+    # dimensioni foglio
+    PAGE_WIDTH, PAGE_HEIGHT  = A4
+    PAGE_MARGIN = int(config.get("Layout","MARGIN")) * cm
+except (configparser.Error, ValueError) as e:
+    _fatal_startup_error(f"Invalid 'Excel2PDFCatalog.config' file: {e}")
 #---------------------------------------------------
 # fonts
-pdfmetrics.registerFont(TTFont("Bandi Regular", "./fonts/Core Bandi Face W01 Regular.ttf"))
-font_primary = "Bandi Regular"
+try:
+    pdfmetrics.registerFont(TTFont("Bandi Regular", "./fonts/Core Bandi Face W01 Regular.ttf"))
+    font_primary = "Bandi Regular"
+except Exception as e:
+    logger.error("Custom font registration failed (%s). Falling back to Helvetica.", e, exc_info=True)
+    font_primary = "Helvetica"
 #---------------------------------------------------
 styles = getSampleStyleSheet()
 # styles
@@ -82,7 +105,10 @@ def _init_styles():
     styles.add(ParagraphStyle(name="ParTitle2", fontName=font_primary, fontSize=20, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE2_COLOR"], spaceAfter=0))
     styles.add(ParagraphStyle(name="Par", fontName=font_primary, fontSize=14, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_COLOR"], spaceAfter=0))
 # ---------------------------------------------------
-locale.setlocale(locale.LC_ALL, config.get("System","LOCALE"))
+try:
+    locale.setlocale(locale.LC_ALL, config.get("System","LOCALE"))
+except locale.Error as e:
+    logger.warning("Locale '%s' not supported on this system (%s). Using system default.", config.get("System","LOCALE"), e)
 # Calcola larghezza disponibile
 USABLE_WIDTH = PAGE_WIDTH - PAGE_MARGIN - PAGE_MARGIN
 USABLE_HEIGHT = PAGE_HEIGHT - PAGE_MARGIN - PAGE_MARGIN
@@ -327,7 +353,7 @@ def build_pdf():
             formatted_price = ""
             if config_utils.flags_dictionary["HIDE_PRICES"] == False:
                 formatted_price=f"€ {float(r[XLS_PRICE]):.2f}"
-        except:
+        except (ValueError, TypeError, KeyError):
             formatted_price = ""
             logger.warning(f"{r[XLS_ITEM]} - XLS_PRICE not defined")
         ## 
@@ -394,7 +420,7 @@ def build_pdf():
                     img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)  
                 else:
                     logger.error(f"Default image not founded! {img_file_path}")
-        except:
+        except (OSError, KeyError):
             logger.error("Product image not founded! ", exc_info=True)
         
         formatted_company = f"<b><i>{r[XLS_COMPANY]}</i></b>"

@@ -35,8 +35,10 @@ def build_UI_and_GO():
      def save_config():
           conferma = messagebox.askyesno("Confirmation", "Are you sure you want to perform this operation?")
           if conferma:
-               config_utils.save_config()
-               messagebox.showinfo("Executed", "Operation complete!")
+               if config_utils.save_config():
+                    messagebox.showinfo("Executed", "Operation complete!")
+               else:
+                    messagebox.showerror("Error", "Failed to save the configuration file. Check the log for details.")
 
      def start_build_pdf():
 
@@ -57,7 +59,8 @@ def build_UI_and_GO():
                else:
                     build_PDF.build_pdf()
                     messagebox.showinfo("Executed", "Operation complete!")
-                    config_utils.save_config()
+                    if not config_utils.save_config():
+                         messagebox.showerror("Error", "Failed to save the configuration file. Check the log for details.")
 
      # def update_break_page_company():
      #      #config_utils.break_page_company = chk1.get() #TODO da rivedere, non funziona

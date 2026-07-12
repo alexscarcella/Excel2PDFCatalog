@@ -6,7 +6,6 @@
 
 import os
 import json
-import sys
 from pathlib import Path
 from app.logger import logger
 
@@ -74,48 +73,55 @@ def load_config():
         logger.info(CONFIG_FILE + " founded. Loading config...")
         try:
             config = json.load(f)
+        except json.JSONDecodeError as e:
+            logger.error("JSON Config file error (READ): %s. Keeping default values.", e, exc_info=True)
+            return
 
-            # 1. Valida/estrai tutto prima di toccare qualsiasi globale
-            new_excel_file            = config["excel_file"]
-            new_txt_intro_file        = config["txt_intro_file"]
-            new_title                 = config["title"]
-            new_subtitle              = config["subtitle"]
-            new_footer                = config["footer"]
-            new_flags   = {k: _parse_bool(config[k]) for k in flags_dictionary}
-            new_colors  = {k: config[k]         for k in colors_dictionary}
-            new_paths   = {k: Path(config[k])   for k in path_dictionary}
+    # Ogni chiave viene applicata singolarmente: se manca o non e' valida nel file JSON
+    # (es. dopo un aggiornamento che ha introdotto nuove chiavi) si mantiene il default
+    # in memoria invece di bloccare l'avvio dell'intera applicazione.
+    excel_file      = config.get("excel_file", excel_file)
+    txt_intro_file  = config.get("txt_intro_file", txt_intro_file)
+    title           = config.get("title", title)
+    subtitle        = config.get("subtitle", subtitle)
+    footer          = config.get("footer", footer)
 
-            # 2. Solo se tutto è andato bene, applica
-            excel_file              = new_excel_file
-            txt_intro_file          = new_txt_intro_file
-            title                   = new_title
-            subtitle                = new_subtitle
-            footer                  = new_footer
-            flags_dictionary.update(new_flags)
-            colors_dictionary.update(new_colors)
-            path_dictionary.update(new_paths)
+    for k in flags_dictionary:
+        if k in config:
+            flags_dictionary[k] = _parse_bool(config[k])
+        else:
+            logger.warning("%s missing in JSON config file. Keeping default value.", k)
 
-            # 3. Logga tutto
-            logger.info("excel_file -> %s",     excel_file)
-            logger.info("txt_intro_file -> %s", txt_intro_file)
-            logger.info("title -> %s",          title)
-            logger.info("subtitle -> %s",       subtitle)
-            logger.info("footer -> %s",         footer)
-            for k, v in flags_dictionary.items():
-                logger.info("%s -> %s", k, v)
-            for k, v in colors_dictionary.items():
-                logger.info("%s -> %s", k, v)
-            for k, v in path_dictionary.items():
-                logger.info("%s -> %s", k, str(v))
+    for k in colors_dictionary:
+        if k in config:
+            colors_dictionary[k] = config[k]
+        else:
+            logger.warning("%s missing in JSON config file. Keeping default value.", k)
 
-        except (KeyError, json.JSONDecodeError, TypeError, ValueError) as e:
-            logger.error("JSON Config file error (READ): %s", e, exc_info=True)
-            #config = {}
-            sys.exit(1)
+    for k in path_dictionary:
+        if k not in config:
+            logger.warning("%s missing in JSON config file. Keeping default value.", k)
+            continue
+        try:
+            path_dictionary[k] = Path(config[k])
+        except TypeError as e:
+            logger.warning("%s invalid in JSON config file (%s). Keeping default value.", k, e)
 
-        
+    logger.info("excel_file -> %s",     excel_file)
+    logger.info("txt_intro_file -> %s", txt_intro_file)
+    logger.info("title -> %s",          title)
+    logger.info("subtitle -> %s",       subtitle)
+    logger.info("footer -> %s",         footer)
+    for k, v in flags_dictionary.items():
+        logger.info("%s -> %s", k, v)
+    for k, v in colors_dictionary.items():
+        logger.info("%s -> %s", k, v)
+    for k, v in path_dictionary.items():
+        logger.info("%s -> %s", k, str(v))
+
 
 def save_config():
+    """Ritorna True se il salvataggio e' andato a buon fine, False altrimenti."""
     try:
         logger.info("JSON Config file saving...")
         config = {
@@ -141,9 +147,10 @@ def save_config():
 
         with open(CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=4)
-    except (KeyError, json.JSONDecodeError, TypeError, ValueError) as e:
+        return True
+    except (TypeError, ValueError, OSError) as e:
         logger.error("JSON Config file error (SAVE): %s", e, exc_info=True)
-        sys.exit(1)
+        return False
 
 def _parse_bool(v):
     if isinstance(v, bool):
