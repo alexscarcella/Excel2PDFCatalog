@@ -36,7 +36,23 @@ It is particularly useful for businesses, shops, or individuals who need to quic
 
 ![Stack Fingerprint](https://stackfingerprint.vercel.app/api/card?repo=alexscarcella/Excel2PDFCatalog&theme=golden&layout=compact&size=xl&icons=mono&pills=round)
 
-## 🛠️ Requirements
+## 📦 Download (no Python needed)
+
+Ready-to-run builds are published under [Releases](https://github.com/alexscarcella/Excel2PDFCatalog/releases):
+
+| Your machine | File to download |
+|---|---|
+| Windows | `Excel2PDFCatalog-Windows-vX.Y.Z.zip` → extract and run the `.exe` |
+| Mac with Apple Silicon (M1/M2/M3/M4) | `Excel2PDFCatalog-macOS-AppleSilicon-vX.Y.Z.dmg` |
+| Mac with Intel processor | `Excel2PDFCatalog-macOS-Intel-vX.Y.Z.dmg` |
+
+Not sure which Mac you have? Apple menu → *About This Mac*: "Chip Apple M…" means Apple Silicon, "Intel" means Intel.
+The two macOS builds are **not** interchangeable: the Apple Silicon build does not run on Intel Macs (Rosetta 2 translates
+Intel → Apple Silicon, not the other way around).
+
+On first launch macOS blocks the app because it is not signed with a Developer ID: right-click the app → *Open* → *Open*.
+
+## 🛠️ Requirements (running from source)
 
 - **Python 3.11+**
 - Dependencies listed in app/requirements.txt (notably: reportlab, pillow, pandas, openpyxl)
