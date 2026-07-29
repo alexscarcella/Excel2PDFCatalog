@@ -25,11 +25,23 @@ jobs:
             platform_name: Windows
             artifact_name: Excel2PDFCatalog-Windows
             arch_suffix: ""
-          # Build per macOS Apple Silicon (funziona anche su Intel via Rosetta 2)
+            compat_note: ""
+          # Build nativa per Mac Apple Silicon (M1/M2/M3/M4).
+          # NON gira sui Mac Intel: Rosetta 2 traduce Intel -> Apple Silicon, non il contrario.
           - os: macos-latest
             platform_name: macOS-AppleSilicon
             artifact_name: Excel2PDFCatalog-macOS-AppleSilicon
             arch_suffix: "-AppleSilicon"
+            expected_arch: arm64
+            compat_note: "Solo Mac Apple Silicon (M1, M2, M3, M4). Per i Mac Intel usare la build -Intel."
+          # Build nativa x86_64 per Mac Intel.
+          # macos-15-intel e' l'ultima immagine x86_64 offerta da GitHub (disponibile fino al 2027).
+          - os: macos-15-intel
+            platform_name: macOS-Intel
+            artifact_name: Excel2PDFCatalog-macOS-Intel
+            arch_suffix: "-Intel"
+            expected_arch: x86_64
+            compat_note: "Solo Mac Intel (x86_64). Gira anche su Apple Silicon via Rosetta 2."
     
     runs-on: ${{ matrix.os }}
     
@@ -71,8 +83,10 @@ jobs:
     - name: Build macOS application
       if: runner.os == 'macOS'
       run: |
-        # Build per architettura nativa (Apple Silicon su macos-latest)
-        # Funziona anche su Intel tramite Rosetta 2
+        # Build per l'architettura nativa del runner:
+        #   macos-latest    -> arm64  (Apple Silicon)
+        #   macos-15-intel  -> x86_64 (Intel)
+        echo "Building for $(uname -m)"
         pyinstaller --onefile --windowed \
           --name Excel2PDFCatalog \
           --add-data "app:app" \
@@ -93,6 +107,14 @@ jobs:
         chmod +x "dist/Excel2PDFCatalog.app/Contents/MacOS/Excel2PDFCatalog"
         xattr -cr "dist/Excel2PDFCatalog.app"
         codesign --force --deep --sign - "dist/Excel2PDFCatalog.app"
+
+        # Verifica che l'architettura prodotta sia quella attesa
+        BIN="dist/Excel2PDFCatalog.app/Contents/MacOS/Excel2PDFCatalog"
+        file "$BIN"
+        if ! file "$BIN" | grep -q "${{ matrix.expected_arch }}"; then
+          echo "::error::Architettura inattesa: attesa ${{ matrix.expected_arch }}"
+          exit 1
+        fi
     
     - name: Create Windows ZIP package
       if: runner.os == 'Windows'
@@ -170,11 +192,11 @@ jobs:
         INSTALLATION:
         1. Copy Excel2PDFCatalog.app to Applications folder
         2. First launch: Right-click → Open (to bypass Gatekeeper)
-        
+
         COMPATIBILITY:
-        - Optimized for Apple Silicon (M1, M2, M3, M4)
-        - Works on Intel Macs via Rosetta 2 translation
-        
+        - ${{ matrix.compat_note }}
+        - Per sapere che Mac hai: menu Apple > Informazioni su questo Mac
+
         USAGE:
         - Select your Excel file
         - Choose image folders
@@ -241,9 +263,13 @@ jobs:
           Create PDF product catalogs from Excel files with ease!
           
           ### Downloads:
-          - **Windows**: Excel2PDFCatalog-Windows-v${{ github.event.inputs.version }}.zip
-          - **macOS**: Excel2PDFCatalog-macOS-AppleSilicon-v${{ github.event.inputs.version }}.dmg
-          
+          - **Windows**: `Excel2PDFCatalog-Windows-v${{ github.event.inputs.version }}.zip`
+          - **macOS Apple Silicon (M1/M2/M3/M4)**: `Excel2PDFCatalog-macOS-AppleSilicon-v${{ github.event.inputs.version }}.dmg`
+          - **macOS Intel**: `Excel2PDFCatalog-macOS-Intel-v${{ github.event.inputs.version }}.dmg`
+
+          Non sai quale scaricare? Menu Apple → *Informazioni su questo Mac*:
+          se leggi "Chip Apple M…" prendi **Apple Silicon**, se leggi "Processore Intel" prendi **Intel**.
+
           ### What's included:
           - Standalone executable (no Python installation needed)
           - Example Excel files
@@ -256,8 +282,12 @@ jobs:
           **macOS**: Mount DMG and copy to Applications
           
           ### macOS Compatibility:
-          The macOS version is optimized for Apple Silicon (M1/M2/M3/M4) but also works on Intel Macs through Rosetta 2 translation layer.
-          
+          Ogni build macOS è nativa per la sua architettura: la build **Apple Silicon** (arm64) **non** funziona sui Mac Intel
+          (Rosetta 2 traduce Intel → Apple Silicon, non il contrario). La build **Intel** (x86_64) funziona sui Mac Intel
+          e, tramite Rosetta 2, anche sugli Apple Silicon.
+
+          Al primo avvio macOS blocca l'app perché non è firmata con un Developer ID: clic destro sull'app → *Apri* → *Apri*.
+
           For documentation visit: https://github.com/alexscarcella/Excel2PDFCatalog
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
