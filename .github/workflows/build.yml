@@ -79,8 +79,10 @@ jobs:
           --hidden-import=reportlab `
           --hidden-import=PIL `
           --collect-all reportlab `
+          --collect-all numpy `
+          --collect-all pandas `
           Excel2PDFCatalog.py
-    
+
     - name: Build macOS application
       if: runner.os == 'macOS'
       run: |
@@ -105,6 +107,8 @@ jobs:
           --hidden-import=reportlab \
           --hidden-import=PIL \
           --collect-all reportlab \
+          --collect-all numpy \
+          --collect-all pandas \
           Excel2PDFCatalog.py
 
         # Fix permessi e firma
