@@ -20,6 +20,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from app.logger import logger
 from pathlib import Path
 from app.images_utils import generate_image, resize_image, load_image_path
+from app.paths_utils import resource_path
 import app.config_utils as config_utils
 
 
@@ -61,7 +62,7 @@ def _fatal_startup_error(message):
 
 # Crea un oggetto ConfigParser
 config = configparser.ConfigParser()
-if not config.read('Excel2PDFCatalog.config'):
+if not config.read(resource_path('Excel2PDFCatalog.config')):
     _fatal_startup_error("Configuration file 'Excel2PDFCatalog.config' not found or unreadable.")
 
 try:
@@ -84,7 +85,7 @@ except (configparser.Error, ValueError) as e:
 #---------------------------------------------------
 # fonts
 try:
-    pdfmetrics.registerFont(TTFont("Bandi Regular", "./fonts/Core Bandi Face W01 Regular.ttf"))
+    pdfmetrics.registerFont(TTFont("Bandi Regular", resource_path("fonts/Core Bandi Face W01 Regular.ttf")))
     font_primary = "Bandi Regular"
 except Exception as e:
     logger.error("Custom font registration failed (%s). Falling back to Helvetica.", e, exc_info=True)
@@ -254,12 +255,16 @@ def insert_body(footer):
     story.append(Spacer(1, 3 * cm))
     # story.append(Paragraph('Subtitle title of the text section', styles['ParTitle2'])) # rendere dinamico il "Subtitle title of the text section"
     story.append(Spacer(1, 1 * cm))
-    long_para = Path(config_utils.txt_intro_file).read_text(encoding='utf-8')
-    long_para = long_para.replace('\n', '<br/>')
-    logger.info(f"Load intro text file: {config_utils.txt_intro_file}")
-    logger.info(long_para)
-    story.append(Paragraph(long_para, styles['Par']))
-    story.append(Spacer(1, 4 * cm))
+    intro_path = Path(config_utils.txt_intro_file)
+    if intro_path.exists():
+        long_para = intro_path.read_text(encoding='utf-8')
+        long_para = long_para.replace('\n', '<br/>')
+        logger.info(f"Load intro text file: {config_utils.txt_intro_file}")
+        logger.info(long_para)
+        story.append(Paragraph(long_para, styles['Par']))
+        story.append(Spacer(1, 4 * cm))
+    else:
+        logger.error("Intro text file not found: %s", config_utils.txt_intro_file)
     story.append(Paragraph(f"{footer}", styles['Footer']))
     logger.info("insert_body OK")
 
@@ -402,7 +407,7 @@ def _load_product_image(r):
             logger.info(f"Product image founded! {img_file_path}")
             img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)
         elif config_utils.flags_dictionary["GENERATE_RANDOM_PRODUCTS_IMAGE"] == True:
-            img_file_path = f"./tmp/{safe_image_name}.png"
+            img_file_path = f"{config_utils.path_dictionary['TMP_SYSTEM_FOLDER_PATH']}/{safe_image_name}.png"
             logger.warning(f"Product image not founded! Build new file... {img_file_path}")
             generate_image(800, 20, img_file_path)
             img = Image(img_file_path, IMAGE_SIZE, IMAGE_SIZE)

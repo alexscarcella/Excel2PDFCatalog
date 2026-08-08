@@ -69,6 +69,7 @@ jobs:
           --add-data "app;app" `
           --add-data "fonts;fonts" `
           --add-data "logs;logs" `
+          --add-data "txt_intros;txt_intros" `
           --add-data "img_products;img_products" `
           --add-data "img_general;img_general" `
           --add-data "example_excel;example_excel" `
@@ -92,6 +93,7 @@ jobs:
           --add-data "app:app" \
           --add-data "fonts:fonts" \
           --add-data "logs:logs" \
+          --add-data "txt_intros:txt_intros" \
           --add-data "img_products:img_products" \
           --add-data "img_general:img_general" \
           --add-data "example_excel:example_excel" \
@@ -129,6 +131,7 @@ jobs:
         # Copia le cartelle necessarie
         Copy-Item "fonts" -Destination "package\fonts" -Recurse -Force
         Copy-Item "img_general" -Destination "package\img_general" -Recurse -Force
+        Copy-Item "txt_intros" -Destination "package\txt_intros" -Recurse -Force
         Copy-Item "example_excel" -Destination "package\example_excel" -Recurse -Force
         Copy-Item "example_catalog" -Destination "package\example_catalog" -Recurse -Force
         Copy-Item "img_products" -Destination "package\img_products" -Recurse -Force
@@ -172,6 +175,7 @@ jobs:
         cp -r "dist/Excel2PDFCatalog.app" package/
         cp -r fonts package/
         cp -r img_general package/
+        cp -r txt_intros package/
         cp -r example_excel package/
         cp -r img_products package/
         cp -r logs package/

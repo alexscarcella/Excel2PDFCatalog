@@ -8,20 +8,19 @@ import os
 import json
 from pathlib import Path
 from app.logger import logger
+from app.paths_utils import resource_path, writable_path
 
-__version__ = "0.5.1"
+__version__ = "1.0.0"
 
-# CONFIG_FILE e' un path relativo alla working directory del processo (cwd),
-# NON alla posizione di questo modulo: l'app va quindi avviata dalla cartella
-# principale del progetto (dove si trova anche Excel2PDFCatalog.py).
-# Questo e' l'UNICO file di configurazione runtime effettivo: un eventuale
-# "app/config.json" non viene mai letto da questo modulo.
-CONFIG_FILE = "config.json"
+# CONFIG_FILE e' un path scrivibile e indipendente dalla cwd: quando l'app e'
+# impacchettata con PyInstaller su macOS punta a ~/Library/Application Support/
+# Excel2PDFCatalog, altrimenti alla working directory (come in passato).
+CONFIG_FILE = writable_path("config.json")
 
 # valori di default che poi vengono sovrascritti
 # dal file di configurazione JSON
-excel_file = f"{os.getcwd()}/example_excel/Product list example.xlsx"
-txt_intro_file = f"{os.getcwd()}/txt_intros/intro.txt"
+excel_file = resource_path("example_excel/Product list example.xlsx")
+txt_intro_file = resource_path("txt_intros/intro_sample_1.txt")
 title = "CHANGE THE TITLE" 
 subtitle = "Change this subtitle" 
 footer = "Change this footer" 
@@ -49,10 +48,10 @@ colors_dictionary = {"COVER_TITLE_COLOR": "#ffffff",
                     }
 
 path_dictionary = {
-    "OUTPUT_PDF_FOLDER_PATH": Path(f"{os.getcwd()}/example_catalog/"),
-    "PRODUCTS_IMAGES_FOLDER_PATH": Path(f"{os.getcwd()}/img_products/"),
-    "GENERAL_IMAGES_FOLDER_PATH":Path(f"{os.getcwd()}/img_general/"),
-    "TMP_SYSTEM_FOLDER_PATH": Path(f"{os.getcwd()}/tmp/")
+    "OUTPUT_PDF_FOLDER_PATH": Path(resource_path("example_catalog/")),
+    "PRODUCTS_IMAGES_FOLDER_PATH": Path(resource_path("img_products/")),
+    "GENERAL_IMAGES_FOLDER_PATH":Path(resource_path("img_general/")),
+    "TMP_SYSTEM_FOLDER_PATH": Path(writable_path("tmp/"))
 }
 
 flags_dictionary = {
@@ -84,8 +83,20 @@ def load_config():
     # Ogni chiave viene applicata singolarmente: se manca o non e' valida nel file JSON
     # (es. dopo un aggiornamento che ha introdotto nuove chiavi) si mantiene il default
     # in memoria invece di bloccare l'avvio dell'intera applicazione.
-    excel_file      = config.get("excel_file", excel_file)
-    txt_intro_file  = config.get("txt_intro_file", txt_intro_file)
+    # Se il path salvato non esiste piu' (es. build "onefile" macOS che estrae il bundle
+    # in una dir temporanea diversa a ogni avvio) si torna al default attuale.
+    candidate = config.get("excel_file", excel_file)
+    if os.path.exists(candidate):
+        excel_file = candidate
+    else:
+        logger.warning("excel_file saved path not found (%s). Keeping default value.", candidate)
+
+    candidate = config.get("txt_intro_file", txt_intro_file)
+    if os.path.exists(candidate):
+        txt_intro_file = candidate
+    else:
+        logger.warning("txt_intro_file saved path not found (%s). Keeping default value.", candidate)
+
     title           = config.get("title", title)
     subtitle        = config.get("subtitle", subtitle)
     footer          = config.get("footer", footer)
@@ -107,9 +118,15 @@ def load_config():
             logger.warning("%s missing in JSON config file. Keeping default value.", k)
             continue
         try:
-            path_dictionary[k] = Path(config[k])
+            candidate = Path(config[k])
         except TypeError as e:
             logger.warning("%s invalid in JSON config file (%s). Keeping default value.", k, e)
+            continue
+        # Se il path salvato non esiste piu' (vedi nota su excel_file) si tiene il default.
+        if not candidate.exists():
+            logger.warning("%s saved path not found (%s). Keeping default value.", k, candidate)
+            continue
+        path_dictionary[k] = candidate
 
     logger.info("excel_file -> %s",     excel_file)
     logger.info("txt_intro_file -> %s", txt_intro_file)

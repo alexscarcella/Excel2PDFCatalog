@@ -2,8 +2,11 @@
 import logging
 from logging.handlers import RotatingFileHandler
 
-# Configurazione del file di log
-LOG_FILENAME = "./logs/app.log"
+from app.paths_utils import writable_path
+
+# Configurazione del file di log: path scrivibile, indipendente dalla cwd
+# (un .app macOS avviato da Finder/Dock ha come cwd la home dell'utente).
+LOG_FILENAME = writable_path("logs/app.log")
 MAX_LOG_SIZE = 1_000_000  # 1 MB
 BACKUP_COUNT = 5          # Numero massimo di file di backup
 
