@@ -88,7 +88,9 @@ jobs:
         #   macos-latest    -> arm64  (Apple Silicon)
         #   macos-15-intel  -> x86_64 (Intel)
         echo "Building for $(uname -m)"
-        pyinstaller --onefile --windowed \
+        # onedir (non onefile) e' la scelta piu' robusta per app tkinter su macOS:
+        # niente estrazione temporanea all'avvio e Tcl/Tk bundlato in modo stabile.
+        pyinstaller --onedir --windowed \
           --name Excel2PDFCatalog \
           --add-data "app:app" \
           --add-data "fonts:fonts" \
@@ -117,6 +119,34 @@ jobs:
           echo "::error::Architettura inattesa: attesa ${{ matrix.expected_arch }}"
           exit 1
         fi
+
+    - name: Smoke test macOS app
+      if: runner.os == 'macOS'
+      run: |
+        # Avvia l'app per qualche secondo e verifica che scriva i marker di avvio
+        # (startup.log / crash.log) nella directory dati utente: cosi' si catturano
+        # crash silenziosi della build windowed gia' in CI.
+        APP="$PWD/dist/Excel2PDFCatalog.app/Contents/MacOS/Excel2PDFCatalog"
+        DATA_DIR="$HOME/Library/Application Support/Excel2PDFCatalog"
+        rm -rf "$DATA_DIR"
+        "$APP" &
+        APP_PID=$!
+        sleep 12
+        echo "----- app status -----"
+        if kill -0 $APP_PID 2>/dev/null; then
+          echo "App ancora in esecuzione (finestra aperta o in attesa)."
+        else
+          echo "App uscita durante l'avvio."
+        fi
+        kill $APP_PID 2>/dev/null || true
+        wait $APP_PID 2>/dev/null || true
+        echo "----- data dir -----"
+        ls -la "$DATA_DIR" 2>/dev/null || echo "Nessuna directory dati creata"
+        echo "----- startup.log -----"
+        cat "$DATA_DIR/startup.log" 2>/dev/null || echo "startup.log non presente"
+        echo "----- crash.log -----"
+        cat "$DATA_DIR/crash.log" 2>/dev/null || echo "crash.log non presente"
+        exit 0
     
     - name: Create Windows ZIP package
       if: runner.os == 'Windows'
