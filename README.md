@@ -154,19 +154,19 @@ build PDF** action bar. File paths in the screenshots are masked.
 
 #### Sources tab
 
-<img src="https://github.com/alexscarcella/Excel2PDFCatalog/blob/main/assets/Preview_Windows_Sources.png?raw=true" alt="Windows UI — Sources tab" width="80%">
+<img src="assets/Preview_Windows_Sources.png" alt="Windows UI — Sources tab" width="80%">
 
 #### Catalog tab
 
-<img src="https://github.com/alexscarcella/Excel2PDFCatalog/blob/main/assets/Preview_Windows_Catalog.png?raw=true" alt="Windows UI — Catalog tab" width="80%">
+<img src="assets/Preview_Windows_Catalog.png" alt="Windows UI — Catalog tab" width="80%">
 
 #### Options tab
 
-<img src="https://github.com/alexscarcella/Excel2PDFCatalog/blob/main/assets/Preview_Windows_Options.png?raw=true" alt="Windows UI — Options tab" width="80%">
+<img src="assets/Preview_Windows_Options.png" alt="Windows UI — Options tab" width="80%">
 
 #### Colors tab
 
-<img src="https://github.com/alexscarcella/Excel2PDFCatalog/blob/main/assets/Preview_Windows_Colours.png?raw=true" alt="Windows UI — Colors tab" width="80%">
+<img src="assets/Preview_Windows_Colours.png" alt="Windows UI — Colors tab" width="80%">
 
 ### UI Preview (macOS)
 
