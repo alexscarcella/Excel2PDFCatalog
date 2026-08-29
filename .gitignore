@@ -46,6 +46,15 @@ tmp/
 /*.pdf
 _PAOLO/
 config.json
+# PDF generati da build_pdf() (revisione batch C, punto 10): finivano committati
+# per errore ogni volta che qualcuno generava un catalogo e faceva "git add -A".
+example_catalog/*.pdf
+# Cartella di output di default post-fix (batch A, punto 4) e diagnostica di
+# avvio/crash scritta da Excel2PDFCatalog.py prima ancora di importare logger.py
+# (batch C, punto 11) - nessuno dei due deve mai finire in git.
+/output/
+crash.log
+startup.log
 
 # -------------------------
 # Git

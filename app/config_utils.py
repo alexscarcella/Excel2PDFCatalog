@@ -10,7 +10,7 @@ from pathlib import Path
 from app.logger import logger
 from app.paths_utils import resource_path, writable_path
 
-__version__ = "1.0.0"
+__version__ = "v1.1.0"
 
 # CONFIG_FILE e' un path scrivibile e indipendente dalla cwd: quando l'app e'
 # impacchettata con PyInstaller su macOS punta a ~/Library/Application Support/
@@ -48,7 +48,12 @@ colors_dictionary = {"COVER_TITLE_COLOR": "#ffffff",
                     }
 
 path_dictionary = {
-    "OUTPUT_PDF_FOLDER_PATH": Path(resource_path("example_catalog/")),
+    # FIX (revisione batch A, punto 4): questo path e' usato solo in SCRITTURA
+    # (build_PDF.py ci scrive il PDF generato), quindi deve passare per
+    # writable_path() come TMP_SYSTEM_FOLDER_PATH sotto - resource_path() risolve
+    # in una build PyInstaller a una cartella temporanea (onefile, cancellata
+    # all'uscita) o non scrivibile (onedir/macOS .app), facendo perdere il PDF appena creato.
+    "OUTPUT_PDF_FOLDER_PATH": Path(writable_path("output/")),
     "PRODUCTS_IMAGES_FOLDER_PATH": Path(resource_path("img_products/")),
     "GENERAL_IMAGES_FOLDER_PATH":Path(resource_path("img_general/")),
     "TMP_SYSTEM_FOLDER_PATH": Path(writable_path("tmp/"))
@@ -65,7 +70,6 @@ flags_dictionary = {
 def load_config():
     global excel_file, txt_intro_file, title, subtitle, footer
 
-    #logger.info("JSON Config file reading...")
     if not os.path.exists(CONFIG_FILE):
         logger.warning("JSON Config file not found. Creating new file...")
         save_config()
@@ -156,7 +160,6 @@ def save_config():
         for k, v in colors_dictionary.items():
             config[f"{k}"] = v
             logger.info("%s -> %s", k, str(v))
-            # logger.info(f"{k} -> {v}")
         #paths
         for k, v in path_dictionary.items():
             config[f"{k}"] = str(v)

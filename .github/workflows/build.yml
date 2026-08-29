@@ -60,7 +60,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r app/requirements.txt
         pip install pyinstaller
-    
+
+    - name: Run unit tests
+      run: python -m unittest discover -s tests -v
+
     - name: Build Windows executable
       if: runner.os == 'Windows'
       run: |

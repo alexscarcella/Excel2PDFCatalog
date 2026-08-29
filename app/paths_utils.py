@@ -23,14 +23,25 @@ def user_data_dir():
 
     Su macOS con app bundlata usa ~/Library/Application Support/Excel2PDFCatalog,
     cosi' l'app non dipende dalla directory da cui viene lanciata (un .app avviato
-    da Finder/Dock ha come cwd la home dell'utente). Negli altri casi (Windows,
-    sviluppo da sorgente) usa la working directory, mantenendo il comportamento
-    storico."""
+    da Finder/Dock ha come cwd la home dell'utente). Su Windows con app bundlata
+    (revisione batch C, punto 12: verificato con una build PyInstaller di prova
+    che un .exe onefile lanciato con una working directory diversa dalla propria
+    cartella - es. un collegamento con "Inizia in" personalizzato - eredita quella
+    cwd senza correzioni) usa %LOCALAPPDATA%\\Excel2PDFCatalog, per lo stesso
+    motivo. Negli altri casi (sviluppo da sorgente) usa la working directory,
+    mantenendo il comportamento storico."""
     if is_frozen() and sys.platform == "darwin":
         base = os.path.join(
             os.path.expanduser("~"),
             "Library",
             "Application Support",
+            "Excel2PDFCatalog",
+        )
+        os.makedirs(base, exist_ok=True)
+        return base
+    if is_frozen() and sys.platform == "win32":
+        base = os.path.join(
+            os.environ.get("LOCALAPPDATA", os.path.expanduser("~")),
             "Excel2PDFCatalog",
         )
         os.makedirs(base, exist_ok=True)

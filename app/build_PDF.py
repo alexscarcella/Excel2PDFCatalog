@@ -4,12 +4,10 @@ import warnings
 import pandas as pd
 import locale
 import configparser
-import random
 import os
 from tkinter import messagebox
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether, PageBreak, NextPageTemplate
-from reportlab.platypus.tableofcontents import TableOfContents
+from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether, NextPageTemplate
 from reportlab.platypus import Flowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
@@ -19,7 +17,8 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from app.logger import logger
 from pathlib import Path
-from app.images_utils import generate_image, resize_image, load_image_path
+from xml.sax.saxutils import escape
+from app.images_utils import generate_image, load_image_path
 from app.paths_utils import resource_path
 import app.config_utils as config_utils
 
@@ -135,7 +134,6 @@ def cover_on_page(canvas, doc):
     canvas.saveState()
     canvas.setFillColor(config_utils.colors_dictionary["COVER_BACKGROUND_COLOR"])
     canvas.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, stroke=0, fill=1)
-    # img_logo_path = f"./{config_utils.path_dictionary['GENERAL_IMAGES_FOLDER_PATH']}/logo.png"
     img_logo_path = os.path.join(f"{config_utils.path_dictionary['GENERAL_IMAGES_FOLDER_PATH']}", "logo.png")
     if Path(img_logo_path).exists():
         logger.info(f"Load LOGO image: {img_logo_path} - 13x13")
@@ -238,13 +236,10 @@ def insert_cover(title, subtitle, footer):
     global story
     # La prima PageTemplate nella lista sara' usata per la prima pagina (Cover).
     story.append(Spacer(1, 21 * cm))
-    story.append(Paragraph(f"{title}", styles['CoverTitle']))
+    story.append(Paragraph(escape(f"{title}"), styles['CoverTitle']))
     story.append(Spacer(1, 0.4 * cm))
-    story.append(Paragraph(f"{subtitle}", styles['CoverSubtitle']))
-    # story.append(Spacer(1, 1 * cm))
-    # story.append(Paragraph(f"{footer}", styles['Footer']))
+    story.append(Paragraph(escape(f"{subtitle}"), styles['CoverSubtitle']))
     logger.info("insert_cover OK")
-    # Forziamo un cambio di template e una nuova pagina per la sezione successiva
 
 def insert_body(footer):
     global story
@@ -253,33 +248,21 @@ def insert_body(footer):
     story.append(PageBreak())
     story.append(Paragraph('Condizioni generali di vendita', styles['ParTitle1'])) # rendere dinamico il "Title of the text section"
     story.append(Spacer(1, 3 * cm))
-    # story.append(Paragraph('Subtitle title of the text section', styles['ParTitle2'])) # rendere dinamico il "Subtitle title of the text section"
     story.append(Spacer(1, 1 * cm))
     intro_path = Path(config_utils.txt_intro_file)
     if intro_path.exists():
         long_para = intro_path.read_text(encoding='utf-8')
-        long_para = long_para.replace('\n', '<br/>')
+        # FIX (revisione batch A, punto 5): il testo va sanificato PRIMA di
+        # aggiungere il tag <br/>, altrimenti escape() lo trasformerebbe in testo visibile.
+        long_para = escape(long_para).replace('\n', '<br/>')
         logger.info(f"Load intro text file: {config_utils.txt_intro_file}")
         logger.info(long_para)
         story.append(Paragraph(long_para, styles['Par']))
         story.append(Spacer(1, 4 * cm))
     else:
         logger.error("Intro text file not found: %s", config_utils.txt_intro_file)
-    story.append(Paragraph(f"{footer}", styles['Footer']))
+    story.append(Paragraph(escape(f"{footer}"), styles['Footer']))
     logger.info("insert_body OK")
-
-# def build_TableOfContents():
-#     global story
-#     # Sommario
-#     story.append(NextPageTemplate('Body'))
-#     story.append(PageBreak())
-#     toc = TableOfContents()
-#     toc.levelStyles = [
-#         styles['CategoryTitle']
-#     ]
-#     story.append(Paragraph("Summary", styles['Heading1']))
-#     story.append(toc)
-#     story.append(PageBreak())
 
 def flush_1x3_row():
     global raw_1x3_items
@@ -301,9 +284,6 @@ def flush_1x3_row():
     ]))
     story.append(KeepTogether(raw_1x3))
     raw_1x3_items = ["","",""]
-    raw_1x3 = Table([[raw_1x3_items[0], raw_1x3_items[1], raw_1x3_items[2]]],
-                    colWidths=[USABLE_WIDTH/3, USABLE_WIDTH/3, USABLE_WIDTH/3],
-                    rowHeights=[USABLE_HEIGHT/3])
     raw_1x3_counter = 0
 
 #=========================================================
@@ -351,6 +331,11 @@ def _format_price(r):
     formatted_price = ""
     try:
         if config_utils.flags_dictionary["HIDE_PRICES"] == False:
+            # FIX (revisione batch A, punto 2): float('nan') non solleva ValueError,
+            # quindi una cella prezzo vuota (NaN in pandas) finiva formattata come
+            # la stringa letterale "€ nan" invece di passare per il ramo di warning.
+            if pd.isna(r[XLS_PRICE]):
+                raise ValueError("price is NaN")
             formatted_price = f"€ {float(r[XLS_PRICE]):.2f}"
     except (ValueError, TypeError, KeyError):
         logger.warning(f"{r[XLS_ITEM]} - XLS_PRICE not defined")
@@ -369,7 +354,7 @@ def _insert_category_page(category_name):
         story.append(PageBreak())  # forzo il cambio pagina
         logger.info(f"Category: {category_name}")
         story.append(Spacer(1, 5 * cm))
-        story.append(Paragraph(category_name, styles['CategoryTitle']))
+        story.append(Paragraph(escape(str(category_name)), styles['CategoryTitle']))
     story.append(NextPageTemplate('Matrix_3x3'))  # scelgo il template per i prodotti
     if config_utils.flags_dictionary["BREAK_PAGE_COMPANY"] == False:
         story.append(PageBreak())
@@ -427,10 +412,13 @@ def _build_product_card(r, img, formatted_price):
     """Costruisce la tabella ReportLab (scheda prodotto) con immagine, azienda,
     nome, formato/prezzo e badge, pronta per essere inserita nella griglia 3x3."""
     TABLE_GAP = 0.3 * cm
-    formatted_company = f"<b><i>{r[XLS_COMPANY]}</i></b>"
-    formatted_item = f"<b>{r[XLS_ITEM]}</b>"
-    formatted_size = f"{r[XLS_SIZE]}"
-    formatted_badge = f"{r[XLS_BADGE]}"
+    # FIX (revisione batch A, punto 5): i valori Excel vanno sanificati con escape()
+    # prima di essere avvolti nei tag <b>/<i> propri dell'app, altrimenti un valore
+    # contenente "&"/"<"/">" produce markup non valido e interrompe l'intera build.
+    formatted_company = f"<b><i>{escape(str(r[XLS_COMPANY]))}</i></b>"
+    formatted_item = f"<b>{escape(str(r[XLS_ITEM]))}</b>"
+    formatted_size = f"{escape(str(r[XLS_SIZE]))}"
+    formatted_badge = f"{escape(str(r[XLS_BADGE]))}"
 
     info = [
         [img, ""],
@@ -476,7 +464,7 @@ def _build_product_card(r, img, formatted_price):
 
 # metodo che costruisce il file PDF
 def build_pdf():
-    global raw_1x3_counter, raw_1x3_items, story
+    global raw_1x3_counter, raw_1x3_items, story, header_state
     #---------------------------------------------------
     #
     logger.info("Init 'build_pdf'...")
@@ -487,6 +475,11 @@ def build_pdf():
     raw_1x3_counter = 0
     raw_1x3_items = ["","",""]
     story = []
+    # FIX (revisione batch D, punto 13): header_state non veniva mai resettato -
+    # se una build precedente (nella stessa sessione UI) aveva BREAK_PAGE_COMPANY
+    # attivo, il banner categoria/azienda restava quello dell'ultima CambiaHeader
+    # anche in una build successiva con il flag disattivato.
+    header_state = {"titolo": "", "header_company": "", "colore": colors.steelblue}
     #
     # file di output
     formatted_datetime =  datetime.datetime.now().strftime("%Y%m%d_%H%M%S") # Formato Giorno/Mese/Anno
@@ -504,6 +497,16 @@ def build_pdf():
     except Exception as e:
         logger.error("FILE EXCEL ERROR!! ", exc_info=True)
         sys.exit()
+    # FIX (revisione batch A, punto 3): senza questo controllo, una colonna
+    # mancante (es. header rinominato dall'utente) faceva risalire un KeyError
+    # non gestito dal primo accesso a r[...] dentro _clean_row_fields/_format_price,
+    # con un traceback poco chiaro. XLS_COLUMN_DESCRIPTION non e' incluso perche'
+    # non viene mai letto durante l'elaborazione delle righe.
+    required_columns = [XLS_ITEM, XLS_CATEGORY, XLS_COMPANY, XLS_SIZE, XLS_PRICE, XLS_COLUMN_IMG, XLS_BADGE]
+    missing_columns = [c for c in required_columns if c not in df.columns]
+    if missing_columns:
+        logger.error("Missing required column(s) in Excel file: %s", missing_columns)
+        raise ValueError(f"Missing required column(s) in Excel file: {missing_columns}")
     #
     previous_category = "" # la variabile che mi permette di capire se c'e' un cambio di categoria in modo da inserire una pagina con il titolo
     previous_company = "" # la variabile che mi permette di capire se c'e' un cambio di azienda in modo da inserire un titolo
@@ -529,6 +532,12 @@ def build_pdf():
 
         raw_1x3_counter = raw_1x3_counter + 1
         if raw_1x3_counter == 3: flush_1x3_row()
+    # FIX (revisione batch A, punto 1): senza questa flush, l'ultimo gruppo di
+    # 1 o 2 prodotti (quando il conteggio totale non e' multiplo di 3) non veniva
+    # mai pubblicato in 'story' - un file con una sola riga produceva un PDF senza
+    # nessun prodotto. Stessa guardia gia' usata in _insert_category_page/_insert_company_page.
+    if raw_1x3_items[0] != "":
+        flush_1x3_row()
     logger.info(f"Read all items in XLSX file")
 
     try:
