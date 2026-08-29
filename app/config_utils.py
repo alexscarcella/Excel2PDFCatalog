@@ -9,8 +9,9 @@ import json
 from pathlib import Path
 from app.logger import logger
 from app.paths_utils import resource_path, writable_path
+import app.i18n as i18n
 
-__version__ = "v1.1.0"
+__version__ = "1.1.0"
 
 # CONFIG_FILE e' un path scrivibile e indipendente dalla cwd: quando l'app e'
 # impacchettata con PyInstaller su macOS punta a ~/Library/Application Support/
@@ -21,9 +22,13 @@ CONFIG_FILE = writable_path("config.json")
 # dal file di configurazione JSON
 excel_file = resource_path("example_excel/Product list example.xlsx")
 txt_intro_file = resource_path("txt_intros/intro_sample_1.txt")
-title = "CHANGE THE TITLE" 
-subtitle = "Change this subtitle" 
-footer = "Change this footer" 
+title = "CHANGE THE TITLE"
+subtitle = "Change this subtitle"
+footer = "Change this footer"
+
+# Lingua dell'interfaccia ("it" | "en"). None = ancora da risolvere: load_config()
+# la prende da config.json oppure la deduce dal locale di sistema (i18n.detect_default()).
+language = None
 
 # colors_dictionary è una lista (o altro iterabile) di stringhe
 colors_dictionary = {"COVER_TITLE_COLOR": "#ffffff",
@@ -67,8 +72,19 @@ flags_dictionary = {
     "FULL_PAGE_CATEGORY": True
 }
 
+# Snapshot dei valori predefiniti, catturato PRIMA che load_config() sovrascriva
+# i dizionari: usato dai pulsanti "Ripristina" della UI.
+COLOR_DEFAULTS = dict(colors_dictionary)
+FLAG_DEFAULTS = dict(flags_dictionary)
+
 def load_config():
-    global excel_file, txt_intro_file, title, subtitle, footer
+    global excel_file, txt_intro_file, title, subtitle, footer, language
+
+    # La lingua va risolta subito: cosi' anche il config.json creato al primo
+    # avvio (ramo "file non trovato" qui sotto) contiene gia' un valore valido.
+    if language is None:
+        language = i18n.detect_default()
+    i18n.set_language(language)
 
     if not os.path.exists(CONFIG_FILE):
         logger.warning("JSON Config file not found. Creating new file...")
@@ -105,6 +121,9 @@ def load_config():
     subtitle        = config.get("subtitle", subtitle)
     footer          = config.get("footer", footer)
 
+    language        = config.get("language", language)
+    i18n.set_language(language)
+
     for k in flags_dictionary:
         if k in config:
             flags_dictionary[k] = _parse_bool(config[k])
@@ -132,6 +151,7 @@ def load_config():
             continue
         path_dictionary[k] = candidate
 
+    logger.info("language -> %s",       language)
     logger.info("excel_file -> %s",     excel_file)
     logger.info("txt_intro_file -> %s", txt_intro_file)
     logger.info("title -> %s",          title)
@@ -150,6 +170,7 @@ def save_config():
     try:
         logger.info("JSON Config file saving...")
         config = {
+            "language":   language,
             "excel_file": excel_file,
             "txt_intro_file": txt_intro_file,
             "title":      title,

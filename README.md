@@ -104,10 +104,25 @@ Excel2PDFCatalog/
 
 ## ▶️ Usage
 
+The window is organised into tabs, in the order you normally fill them in. The
+language selector (top-right) and the bottom action bar are always visible; the
+interface is available in **Italian and English**, switchable at runtime (the
+choice is saved in `config.json`).
+
 1. Start the app.
-2. Select an Excel file, the image folder(s) containing product images, and the output folder.
-3. Verify or edit the column mapping if your Excel uses different headers.
-4. Click "Go" to generate the PDF(s). Monitor the log/console for progress and warnings.
+2. **Sources / Sorgenti** — pick the Excel file, the intro `.txt` file, and the
+   folders (output, product images, general images, temp). A ✔ / ✕ marker next to
+   each row tells you whether the path exists.
+3. **Catalog / Catalogo** — set the cover title, subtitle and footer.
+4. **Options / Opzioni** — toggle the layout flags (each has a one-line
+   description).
+5. **Colors / Colori** — the colours are grouped by the region of the PDF they
+   affect; click a swatch to pick a colour or type a hex value, and use ↺ to
+   restore a single default.
+6. Click **Save & build PDF / Salva e genera PDF**. If something is missing the
+   status bar says what and jumps you back to the Sources tab; otherwise the PDF
+   is written to the output folder. Column mapping still lives in
+   `Excel2PDFCatalog.config`.
 
 ## 📄 Preview
 
@@ -116,6 +131,10 @@ An Excel file with columns Name, Price, Image can produce a PDF catalog with:
 - Product title
 - Formatted price
 - Linked image from img_products/
+
+> **Note:** the screenshots below predate the tabbed `ttk` interface and will be
+> refreshed. The layout is now organised into the Sources / Catalog / Options /
+> Colors tabs described under [Usage](#️-usage).
 
 ### UI Preview (Windows):
 <img src="https://github.com/alexscarcella/Excel2PDFCatalog/blob/main/assets/Preview_Windows.png?raw=true" alt="Windows UI Screenshot" width="80%">

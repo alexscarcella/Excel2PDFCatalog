@@ -40,6 +40,7 @@ class _ConfigFileTestCase(unittest.TestCase):
             config_utils.excel_file, config_utils.txt_intro_file,
             config_utils.title, config_utils.subtitle, config_utils.footer,
         )
+        self._original_language = config_utils.language
         self._tmp_dir = tempfile.TemporaryDirectory()
         config_utils.CONFIG_FILE = os.path.join(self._tmp_dir.name, "config.json")
 
@@ -53,6 +54,7 @@ class _ConfigFileTestCase(unittest.TestCase):
         config_utils.path_dictionary.update(self._original_paths)
         (config_utils.excel_file, config_utils.txt_intro_file,
          config_utils.title, config_utils.subtitle, config_utils.footer) = self._original_scalars
+        config_utils.language = self._original_language
         self._tmp_dir.cleanup()
 
 
@@ -89,6 +91,23 @@ class TestLoadConfig(_ConfigFileTestCase):
         self.assertFalse(os.path.exists(config_utils.CONFIG_FILE))
         config_utils.load_config()
         self.assertTrue(os.path.exists(config_utils.CONFIG_FILE))
+
+    def test_language_round_trips_through_save_and_load(self):
+        config_utils.language = "en"
+        self.assertTrue(config_utils.save_config())
+
+        config_utils.language = "it"          # simula una sessione diversa
+        config_utils.load_config()
+        self.assertEqual(config_utils.language, "en")
+
+    def test_missing_language_key_falls_back_without_crashing(self):
+        partial_config = {"title": "T", "subtitle": "S", "footer": "F"}
+        with open(config_utils.CONFIG_FILE, "w") as f:
+            json.dump(partial_config, f)
+
+        config_utils.language = None
+        config_utils.load_config()            # non deve sollevare
+        self.assertIn(config_utils.language, ("it", "en"))
 
 
 class TestSaveConfig(_ConfigFileTestCase):
