@@ -1,6 +1,6 @@
 # Excel2PDFCatalog
 
-Excel2PDFCatalog is a Python tool that reads product/catalog data from an Excel file and generates one PDF catalog. It provides a tabbed desktop UI (Tkinter/`ttk`, bilingual Italian/English) to select the Excel file, folders, catalog texts, options and colors, plus a PDF builder that composes pages from rows and linked images.
+Excel2PDFCatalog is a Python tool that reads product/catalog data from an Excel file and generates one PDF catalog. It provides a tabbed desktop UI (Tkinter/`ttk`, bilingual Italian/English) to select the Excel file, folders, catalog texts, options, colors and the Excel-column mapping, plus a PDF builder that composes pages from rows and linked images.
 
 ## Purpose
 Excel2PDFCatalog is a lightweight utility designed to **convert Excel spreadsheets into well-formatted PDF catalogs**.  
@@ -20,8 +20,9 @@ It is particularly useful for businesses, shops, or individuals who need to quic
 - UI-driven workflow (tabbed `ttk.Notebook`, in the order you fill it in):
   - **Sources** — Excel file, intro `.txt`, and the output / product-images / general-images / temp folders, each with a ✔ / ✕ *exists* marker.
   - **Catalog** — cover title, subtitle, footer.
-  - **Options** — the layout flags, each with a one-line description.
+  - **Options** — a "Layout" section with page margin (cm) and product-card border width (pt), plus the layout flags, each with a one-line description.
   - **Colors** — grouped by the PDF region they affect; swatch picker + hex field with live validation + per-value reset.
+  - **Excel columns** — the mapping between the app's fields and your `.xlsx` header names, plus the system locale (advanced; an editable dropdown of common locales). Written to `Excel2PDFCatalog.config`.
   - A persistent bottom bar with an inline status line and **Save config** / **Save & build PDF** buttons; a language toggle (IT/EN) top-right; the full run log in `logs/app.log`.
 - PDF generation:
   - Uses reportlab to layout pages and render text and images.
@@ -29,7 +30,7 @@ It is particularly useful for businesses, shops, or individuals who need to quic
   - Image resizing and placement logic to fit images into product frames.
 - Config files:
   - ***config.json*** — generated UI/runtime state: `language`, title/subtitle/footer, colors, folder paths, boolean flags. Written next to the app when run from source; under the per-user data dir (`~/Library/Application Support/Excel2PDFCatalog`, `%LOCALAPPDATA%\Excel2PDFCatalog`) in packaged builds.
-  - ***Excel2PDFCatalog.config*** — project-specific Excel column mapping and layout rules (INI).
+  - ***Excel2PDFCatalog.config*** — Excel column mapping and layout rules (`MARGIN`, `CARD_BORDER_WIDTH`, `LOCALE`) as INI. Editable from the **Excel columns** tab and the Options "Layout" section; like `config.json` it lives under the per-user data dir in packaged builds.
 - Error handling & logging: console output and log messages for missing images, parsing errors, and generation steps.
 - Examples & assets:
   - ***example_excel/*** and ***example_catalog/*** provide sample inputs and outputs to validate layout and mapping.
@@ -86,7 +87,7 @@ python Excel2PDFCatalog.py
 
 ``config.json`` → generated UI/runtime state (language, folders, catalog texts, colors, flags). Normally edited through the UI, not by hand.
 
-``Excel2PDFCatalog.config`` → Excel column mapping and layout rules (`MARGIN`, `LOCALE`). Edit this if your spreadsheet uses different column headers.
+``Excel2PDFCatalog.config`` → Excel column mapping and layout rules (`MARGIN`, `CARD_BORDER_WIDTH`, `LOCALE`). Editable from the UI (**Excel columns** tab + Options "Layout" section); edit the file directly only if you prefer.
 
 📂 Project Structure
 
@@ -95,6 +96,7 @@ Excel2PDFCatalog/
 ├── Excel2PDFCatalog.py        # Entrypoint: load_config() + build_UI_and_GO(); installs sys.excepthook
 ├── app/
 │   ├── config_utils.py        # Runtime state + load_config()/save_config() (config.json)
+│   ├── excel_config.py        # Excel2PDFCatalog.config (column mapping, MARGIN, CARD_BORDER_WIDTH, LOCALE)
 │   ├── ui_interface.py        # Tabbed ttk UI (build_UI_and_GO)
 │   ├── i18n.py                # Bilingual IT/EN strings + language switching
 │   ├── build_PDF.py           # PDF generation with ReportLab (build_pdf)
@@ -105,7 +107,7 @@ Excel2PDFCatalog/
 ├── assets/
 │   ├── icon/                 # App / window icon: icon.ico, icon.icns, icon_*.png + make_icon.py (regen)
 │   └── Preview_Windows_*.png  # Per-tab UI screenshots embedded in this README
-├── tests/                    # stdlib unittest suite (config_utils, i18n, build_PDF, images_utils)
+├── tests/                    # stdlib unittest suite (config_utils, excel_config, i18n, build_PDF, images_utils)
 ├── fonts/                    # Custom TTF font registered by build_PDF.py
 ├── txt_intros/              # Sample intro text files
 ├── img_products/            # Product images (name = Excel image column, 1:1)
@@ -113,7 +115,7 @@ Excel2PDFCatalog/
 ├── example_excel/           # Example input spreadsheet
 ├── example_catalog/         # Example PDF output
 ├── config.json             # Generated UI/runtime state (git-ignored)
-└── Excel2PDFCatalog.config  # Excel column mapping + layout rules (INI)
+└── Excel2PDFCatalog.config  # Excel column mapping + MARGIN/CARD_BORDER_WIDTH/LOCALE (INI); bundled seed for a writable copy
 ```
 
 ## ▶️ Usage
@@ -128,15 +130,21 @@ choice is saved in `config.json`).
    folders (output, product images, general images, temp). A ✔ / ✕ marker next to
    each row tells you whether the path exists.
 3. **Catalog / Catalogo** — set the cover title, subtitle and footer.
-4. **Options / Opzioni** — toggle the layout flags (each has a one-line
-   description).
+4. **Options / Opzioni** — the "Layout" section sets the page margin (cm) and the
+   product-card border width (pt); below it, toggle the layout flags (each has a
+   one-line description).
 5. **Colors / Colori** — the colours are grouped by the region of the PDF they
    affect; click a swatch to pick a colour or type a hex value, and use ↺ to
    restore a single default.
-6. Click **Save & build PDF / Salva e genera PDF**. If something is missing the
-   status bar says what and jumps you back to the Sources tab; otherwise the PDF
-   is written to the output folder. Column mapping still lives in
+6. **Excel columns / Colonne Excel** — enter the `.xlsx` header names for each
+   field (category, company, item, size, price, description, image code, badge);
+   the "Advanced" section holds the system locale — pick one from the dropdown of
+   common locales or type a platform-specific value. Saved to
    `Excel2PDFCatalog.config`.
+7. Click **Save & build PDF / Salva e genera PDF**. If something is missing the
+   status bar says what and jumps you back to the Sources tab; otherwise the PDF
+   is written to the output folder. Changes to the mapping, margin and border
+   width apply to that build immediately — no restart needed.
 
 ## 📄 Preview
 
@@ -148,9 +156,12 @@ An Excel file with columns Name, Price, Image can produce a PDF catalog with:
 
 ### UI Preview (Windows)
 
-The tabbed `ttk` interface — Sources / Catalog / Options / Colors — with the
-always-visible language toggle (top-right) and the **Save config** / **Save &
-build PDF** action bar. File paths in the screenshots are masked.
+The tabbed `ttk` interface — Sources / Catalog / Options / Colors / Excel columns
+— with the always-visible language toggle (top-right) and the **Save config** /
+**Save & build PDF** action bar. File paths in the screenshots are masked.
+
+*The screenshots below predate the Options "Layout" section and the "Excel
+columns" tab; they will be refreshed on the next capture pass.*
 
 #### Sources tab
 

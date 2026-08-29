@@ -11,6 +11,7 @@ from app.logger import logger
 from app.paths_utils import resource_path
 import app.config_utils as config_utils
 import app.build_PDF as build_PDF
+import app.excel_config as excel_config
 from app import i18n
 from app.i18n import t
 
@@ -41,6 +42,15 @@ def _ellipsize_middle(text, max_len=_PATH_MAXLEN):
     head = keep // 2
     tail = keep - head
     return text[:head] + "…" + text[-tail:]
+
+
+def _fmt_number(value):
+    """2.0 -> '2', 1.5 -> '1.5' per i campi numerici della UI."""
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    return str(int(f)) if f.is_integer() else format(f, "g")
 
 
 class Tooltip:
@@ -531,10 +541,57 @@ def build_UI_and_GO():
         wrap.columnconfigure(0, weight=1)
         retrans = []
 
+        # --- sezione Layout: parametri numerici di Excel2PDFCatalog.config ----
+        layout_lf = ttk.Labelframe(wrap, text=t("options.layout"), padding=PAD_M)
+        layout_lf.grid(row=0, column=0, sticky="ew", pady=(0, PAD_L))
+        layout_lf.columnconfigure(1, weight=1)
+        retrans.append(lambda: layout_lf.configure(text=t("options.layout")))
+
+        def _make_number_row(row, key, getter, setter):
+            lbl = ttk.Label(layout_lf, text=i18n.field_label(key))
+            lbl.grid(row=row, column=0, sticky="w", padx=(0, PAD_M), pady=(PAD_S, 0))
+            var = tk.StringVar(value=_fmt_number(getter()))
+            tk_vars.append(var)
+            entry = ttk.Entry(layout_lf, textvariable=var, width=10)
+            entry.grid(row=row, column=1, sticky="w", pady=(PAD_S, 0))
+            hint = ttk.Label(layout_lf, text=i18n.field_hint(key), style="Hint.TLabel")
+            hint.grid(row=row + 1, column=1, sticky="w", pady=(0, PAD_S))
+
+            def _on_write(*_args):
+                raw = var.get().strip().replace(",", ".")
+                try:
+                    value = float(raw)
+                    if value <= 0:
+                        raise ValueError
+                except ValueError:
+                    entry.configure(style="Invalid.TEntry")
+                    _set_status(t("status.invalid_number"), "error")
+                    return
+                entry.configure(style="TEntry")
+                setter(value)
+                logger.info("layout %s -> %s", key, value)
+                _refresh_validation()
+
+            var.trace_add("write", _on_write)
+
+            def _r(_lbl=lbl, _hint=hint, _key=key):
+                _lbl.configure(text=i18n.field_label(_key))
+                _hint.configure(text=i18n.field_hint(_key))
+
+            retrans.append(_r)
+
+        _make_number_row(0, "MARGIN",
+                         lambda: excel_config.layout.get("MARGIN", 2.0),
+                         lambda v: excel_config.layout.__setitem__("MARGIN", v))
+        _make_number_row(2, "CARD_BORDER_WIDTH",
+                         lambda: excel_config.layout.get("CARD_BORDER_WIDTH", 2.0),
+                         lambda v: excel_config.layout.__setitem__("CARD_BORDER_WIDTH", v))
+
+        # --- flag booleani ---------------------------------------------------
         order = [k for k in i18n.FLAG_ORDER if k in config_utils.flags_dictionary]
         order += [k for k in config_utils.flags_dictionary if k not in order]
 
-        grid_row = 0
+        grid_row = 1
         for key in order:
             var = tk.BooleanVar(value=config_utils.flags_dictionary[key])
             tk_vars.append(var)
@@ -605,6 +662,84 @@ def build_UI_and_GO():
 
         i18n.on_language_change(lambda: [fn() for fn in retrans])
 
+    def _build_excel_columns_tab(parent):
+        """Editor di 'Excel2PDFCatalog.config': mappatura fra i campi dell'app e i
+        nomi di colonna del foglio .xlsx, piu' il locale di sistema (avanzato).
+        Scrive direttamente nei dizionari di app/excel_config.py; la persistenza
+        avviene con il "Salva" della barra inferiore (config_utils.save_config)."""
+        wrap = ttk.Frame(parent, padding=PAD_L)
+        wrap.pack(fill="both", expand=True)
+        wrap.columnconfigure(0, weight=1)
+        retrans = []
+
+        intro = ttk.Label(wrap, text=t("excelcols.intro"), style="Hint.TLabel",
+                          wraplength=760, justify="left")
+        intro.grid(row=0, column=0, sticky="w", pady=(0, PAD_M))
+        retrans.append(lambda: intro.configure(text=t("excelcols.intro")))
+
+        map_lf = ttk.Labelframe(wrap, text=t("excelcols.mapping"), padding=PAD_M)
+        map_lf.grid(row=1, column=0, sticky="ew", pady=(0, PAD_L))
+        map_lf.columnconfigure(1, weight=1)
+        retrans.append(lambda: map_lf.configure(text=t("excelcols.mapping")))
+
+        grid_row = 0
+        for logical, ini_key, _default, _req in excel_config.COLUMN_KEYS:
+            lbl = ttk.Label(map_lf, text=i18n.field_label(ini_key))
+            lbl.grid(row=grid_row, column=0, sticky="w", padx=(0, PAD_M), pady=(PAD_S, 0))
+            var = tk.StringVar(value=excel_config.columns.get(logical, ""))
+            tk_vars.append(var)
+
+            def _bind(k, v):
+                def _update(*_args):
+                    excel_config.columns[k] = v.get().strip()
+                    logger.info("excel mapping %s -> %s", k, v.get().strip())
+                v.trace_add("write", _update)
+
+            _bind(logical, var)
+            ttk.Entry(map_lf, textvariable=var).grid(
+                row=grid_row, column=1, sticky="ew", pady=(PAD_S, 0))
+            hint = ttk.Label(map_lf, text=i18n.field_hint(ini_key), style="Hint.TLabel")
+            hint.grid(row=grid_row + 1, column=1, sticky="w", pady=(0, PAD_S))
+
+            def _mk_retrans(_lbl=lbl, _hint=hint, _ini=ini_key):
+                def _r():
+                    _lbl.configure(text=i18n.field_label(_ini))
+                    _hint.configure(text=i18n.field_hint(_ini))
+                return _r
+
+            retrans.append(_mk_retrans())
+            grid_row += 2
+
+        adv_lf = ttk.Labelframe(wrap, text=t("excelcols.advanced"), padding=PAD_M)
+        adv_lf.grid(row=2, column=0, sticky="ew")
+        adv_lf.columnconfigure(1, weight=1)
+        retrans.append(lambda: adv_lf.configure(text=t("excelcols.advanced")))
+
+        loc_lbl = ttk.Label(adv_lf, text=i18n.field_label("LOCALE"))
+        loc_lbl.grid(row=0, column=0, sticky="w", padx=(0, PAD_M), pady=(PAD_S, 0))
+        loc_var = tk.StringVar(value=excel_config.system.get("LOCALE", ""))
+        tk_vars.append(loc_var)
+
+        def _loc_update(*_args):
+            excel_config.system["LOCALE"] = loc_var.get().strip()
+            logger.info("excel LOCALE -> %s", loc_var.get().strip())
+
+        loc_var.trace_add("write", _loc_update)
+        # Combo editabile: elenco dei locale piu' comuni + eventuale valore
+        # corrente non in lista (es. sintassi Windows) in testa.
+        loc_values = list(excel_config.COMMON_LOCALES)
+        _current_loc = loc_var.get().strip()
+        if _current_loc and _current_loc not in loc_values:
+            loc_values.insert(0, _current_loc)
+        ttk.Combobox(adv_lf, textvariable=loc_var, values=loc_values, height=15).grid(
+            row=0, column=1, sticky="ew", pady=(PAD_S, 0))
+        loc_hint = ttk.Label(adv_lf, text=i18n.field_hint("LOCALE"), style="Hint.TLabel")
+        loc_hint.grid(row=1, column=1, sticky="w", pady=(0, PAD_S))
+        retrans.append(lambda: loc_lbl.configure(text=i18n.field_label("LOCALE")))
+        retrans.append(lambda: loc_hint.configure(text=i18n.field_hint("LOCALE")))
+
+        i18n.on_language_change(lambda: [fn() for fn in retrans])
+
     # ==================================================================
     # Guscio: barra superiore, notebook, barra inferiore, menu
     # ==================================================================
@@ -643,15 +778,18 @@ def build_UI_and_GO():
     catalog_tab = ttk.Frame(notebook)
     options_tab = ttk.Frame(notebook)
     colors_tab = ttk.Frame(notebook)
+    excel_tab = ttk.Frame(notebook)
     notebook.add(sources_tab, text=t("tab.sources"))
     notebook.add(catalog_tab, text=t("tab.catalog"))
     notebook.add(options_tab, text=t("tab.options"))
     notebook.add(colors_tab, text=t("tab.colors"))
+    notebook.add(excel_tab, text=t("tab.excelcols"))
 
     _build_sources_tab(sources_tab)
     _build_catalog_tab(catalog_tab)
     _build_options_tab(options_tab)
     _build_colors_tab(colors_tab)
+    _build_excel_columns_tab(excel_tab)
 
     def _build_menu():
         menubar = tk.Menu(root)
@@ -690,6 +828,7 @@ def build_UI_and_GO():
         notebook.tab(catalog_tab, text=t("tab.catalog"))
         notebook.tab(options_tab, text=t("tab.options"))
         notebook.tab(colors_tab, text=t("tab.colors"))
+        notebook.tab(excel_tab, text=t("tab.excelcols"))
         btn_build.configure(text=t("btn.build"))
         btn_save.configure(text=t("btn.save_config"))
         _build_menu()

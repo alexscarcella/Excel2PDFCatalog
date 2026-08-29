@@ -14,11 +14,11 @@ Run `git diff` (and `git diff --stat` for an overview) to see what changed. If t
 ## What to review
 
 **Structure & architecture**
-- Respect the existing module boundaries: `Excel2PDFCatalog.py` (entrypoint) → `app/config_utils.py` (shared mutable state) → `app/ui_interface.py` (Tkinter UI) → `app/build_PDF.py` (ReportLab PDF assembly) → `app/images_utils.py` / `app/logger.py`.
+- Respect the existing module boundaries: `Excel2PDFCatalog.py` (entrypoint) → `app/config_utils.py` (shared mutable state, `config.json`) / `app/excel_config.py` (`Excel2PDFCatalog.config` INI) → `app/ui_interface.py` (Tkinter UI) → `app/build_PDF.py` (ReportLab PDF assembly) → `app/images_utils.py` / `app/logger.py`.
 - Flag code that bypasses `config_utils.py`'s module-level globals (`excel_file`, `txt_intro_file`, `title`, `subtitle`, `footer`, `colors_dictionary`, `path_dictionary`, `flags_dictionary`) instead of using them, or that introduces new parallel state.
 - If a `colors_dictionary` / `path_dictionary` / `flags_dictionary` key is renamed or added, verify consistency across `config_utils.py` defaults, `ui_interface.py` (auto-generated UI controls/labels), and every direct reference in `build_PDF.py`.
-- If an `XLS_COLUMN_*` mapping changes, verify `Excel2PDFCatalog.config` (INI) and the corresponding `config.get(...)` call in `build_PDF.py` match.
-- Remember `build_PDF.py` does real work at **import time** (reads INI config, registers TTF font, computes page geometry) — flag anything that assumes lazy initialization or reorders imports unsafely.
+- If an `XLS_COLUMN_*` / `[Layout]` / `[System]` key changes, verify `app/excel_config.py` (`COLUMN_KEYS` / `LAYOUT_DEFAULTS` / `SYSTEM_DEFAULTS`), `Excel2PDFCatalog.config`, and `build_PDF.py`'s `_init_excel_mapping()` / `_init_layout()` stay consistent, plus `field.<KEY>` / `hint.<KEY>` parity in `i18n.TRANSLATIONS`.
+- Remember `build_PDF.py` registers the TTF font at **import time**; the column mapping, page geometry and locale are (re)built by `_init_excel_mapping()` / `_init_layout()` / `_init_locale()`, called at import **and** at the top of `build_pdf()` — flag anything that reintroduces import-only initialization for config-derived values, or reorders imports unsafely.
 - Check pagination/story-list side effects (`NextPageTemplate`/`PageBreak`, `flush_1x3_row`, `_insert_category_page`/`_insert_company_page`) stay consistent when modified.
 
 **Code quality & correctness**
@@ -40,7 +40,7 @@ Run `git diff` (and `git diff --stat` for an overview) to see what changed. If t
 **Conventions**
 - PEP 8 style, consistent with the surrounding module.
 - Docstring/comment style matches the rest of the codebase (this project favors sparse comments — flag comment bloat as well as missing comments on genuinely non-obvious logic).
-- Test coverage: note when changes to `config_utils.py` or `images_utils.py` (which have `tests/` coverage) aren't reflected in `tests/`, and when changes to `build_PDF.py`/`ui_interface.py` (untested) at least look safe to validate manually via `example_excel/Product list example.xlsx` and `logs/app.log`.
+- Test coverage: note when changes to `config_utils.py`, `excel_config.py`, `i18n.py`, `build_PDF.py`, or `images_utils.py` (which have `tests/` coverage) aren't reflected in `tests/`, and when changes to `ui_interface.py` (untested — the Tkinter rendering path) at least look safe to validate manually via `example_excel/Product list example.xlsx` and `logs/app.log`.
 
 ## Output
 

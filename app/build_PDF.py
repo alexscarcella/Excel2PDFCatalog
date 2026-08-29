@@ -3,9 +3,7 @@ import datetime
 import warnings
 import pandas as pd
 import locale
-import configparser
 import os
-from tkinter import messagebox
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether, NextPageTemplate
 from reportlab.platypus import Flowable
@@ -21,6 +19,7 @@ from xml.sax.saxutils import escape
 from app.images_utils import generate_image, load_image_path
 from app.paths_utils import resource_path
 import app.config_utils as config_utils
+import app.excel_config as excel_config
 
 
 class CambiaHeader(Flowable):
@@ -47,40 +46,74 @@ class CambiaHeader(Flowable):
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 # -------------------------------------------------
 
-def _fatal_startup_error(message):
-    # Errore non recuperabile in fase di inizializzazione del modulo: senza una
-    # mappatura colonne Excel valida l'app non puo' generare nulla, quindi si
-    # avvisa l'utente (anche se la finestra principale non e' ancora aperta)
-    # e si esce in modo controllato invece di lasciar propagare un traceback.
-    logger.critical(message)
+# Dimensioni pagina A4 (costanti).
+PAGE_WIDTH, PAGE_HEIGHT = A4
+
+# I parametri di 'Excel2PDFCatalog.config' (mapping colonne, MARGIN,
+# CARD_BORDER_WIDTH, LOCALE) sono gestiti da app/excel_config.py e sono
+# modificabili dalla UI. build_PDF.py li rilegge con le tre _init_* qui sotto:
+# una volta all'import e di nuovo all'inizio di build_pdf(), cosi' le modifiche
+# hanno effetto senza riavviare l'app. Da MARGIN dipendono anche la geometria di
+# pagina e i PageTemplate, per questo _init_layout() li ricostruisce.
+
+# Nomi di colonna del foglio Excel: valorizzati da _init_excel_mapping().
+XLS_CATEGORY = XLS_COMPANY = XLS_ITEM = XLS_SIZE = XLS_PRICE = ""
+XLS_COLUMN_DESCRIPTION = XLS_COLUMN_IMG = XLS_BADGE = ""
+
+
+def _init_excel_mapping():
+    """(Ri)legge da excel_config i nomi di colonna del foglio Excel."""
+    global XLS_CATEGORY, XLS_COMPANY, XLS_ITEM, XLS_SIZE, XLS_PRICE
+    global XLS_COLUMN_DESCRIPTION, XLS_COLUMN_IMG, XLS_BADGE
+    cols = excel_config.all_columns()
+    XLS_CATEGORY = cols["CATEGORY"]
+    XLS_COMPANY = cols["COMPANY"]
+    XLS_ITEM = cols["ITEM"]
+    XLS_SIZE = cols["SIZE"]
+    XLS_PRICE = cols["PRICE"]
+    XLS_COLUMN_DESCRIPTION = cols["DESCRIPTION"]
+    XLS_COLUMN_IMG = cols["IMG"]
+    XLS_BADGE = cols["BADGE"]
+
+
+def _init_layout():
+    """(Ri)calcola la geometria di pagina (dipende da MARGIN) e ricrea Frame e
+    PageTemplate, cosi' un cambio di margine dalla UI ha effetto al build."""
+    global PAGE_MARGIN, USABLE_WIDTH, USABLE_HEIGHT
+    global cover_frame, body_frame, matrix_3x3_frame
+    global cover_page_template, body_page_template, category_page_template, matrix_3x3_page_template
+
+    PAGE_MARGIN = excel_config.margin_cm() * cm
+    USABLE_WIDTH = PAGE_WIDTH - PAGE_MARGIN - PAGE_MARGIN
+    USABLE_HEIGHT = PAGE_HEIGHT - PAGE_MARGIN - PAGE_MARGIN
+
+    cover_frame = Frame(
+        PAGE_MARGIN, PAGE_MARGIN, USABLE_WIDTH, USABLE_HEIGHT,
+        leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
+        id='cover_frame', showBoundary=0)
+    body_frame = Frame(
+        PAGE_MARGIN, PAGE_MARGIN, USABLE_WIDTH, USABLE_HEIGHT,
+        leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
+        id='body_frame', showBoundary=0)
+    matrix_3x3_frame = Frame(
+        PAGE_MARGIN, PAGE_MARGIN, USABLE_WIDTH, USABLE_HEIGHT,
+        leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
+        id='matrix_3x3', showBoundary=0)
+
+    cover_page_template = PageTemplate(id='Cover', frames=[cover_frame], onPage=cover_on_page)
+    body_page_template = PageTemplate(id='Body', frames=[body_frame], onPage=body_on_page)
+    category_page_template = PageTemplate(id='Category', frames=[body_frame], onPage=category_on_page)
+    matrix_3x3_page_template = PageTemplate(id='Matrix_3x3', frames=[matrix_3x3_frame], onPage=matrix_3x3_on_page)
+
+
+def _init_locale():
+    """Imposta il locale definito in Excel2PDFCatalog.config (best-effort)."""
+    loc = excel_config.locale_name()
     try:
-        messagebox.showerror("Excel2PDFCatalog - Startup error", message)
-    except Exception:
-        pass
-    sys.exit(1)
+        locale.setlocale(locale.LC_ALL, loc)
+    except locale.Error as e:
+        logger.warning("Locale '%s' not supported on this system (%s). Using system default.", loc, e)
 
-# Crea un oggetto ConfigParser
-config = configparser.ConfigParser()
-if not config.read(resource_path('Excel2PDFCatalog.config')):
-    _fatal_startup_error("Configuration file 'Excel2PDFCatalog.config' not found or unreadable.")
-
-try:
-    #---------------------------------------------------
-    # Mapping foglio EXCEL
-    XLS_CATEGORY = config.get("Excel","XLS_COLUMN_CATEGORY")
-    XLS_COMPANY = config.get("Excel","XLS_COLUMN_COMPANY")
-    XLS_ITEM = config.get("Excel","XLS_COLUMN_ITEM")
-    XLS_SIZE = config.get("Excel","XLS_COLUMN_SIZE")
-    XLS_PRICE = config.get("Excel","XLS_COLUMN_PRICE")
-    XLS_COLUMN_DESCRIPTION = config.get("Excel","XLS_COLUMN_DESCRIPTION")
-    XLS_COLUMN_IMG = config.get("Excel","XLS_COLUMN_IMG")
-    XLS_BADGE = config.get("Excel","XLS_BADGE")
-    #---------------------------------------------------
-    # dimensioni foglio
-    PAGE_WIDTH, PAGE_HEIGHT  = A4
-    PAGE_MARGIN = int(config.get("Layout","MARGIN")) * cm
-except (configparser.Error, ValueError) as e:
-    _fatal_startup_error(f"Invalid 'Excel2PDFCatalog.config' file: {e}")
 #---------------------------------------------------
 # fonts
 try:
@@ -110,13 +143,9 @@ def _init_styles():
     styles.add(ParagraphStyle(name="ParTitle2", fontName=font_primary, fontSize=20, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_TITLE2_COLOR"], spaceAfter=0))
     styles.add(ParagraphStyle(name="Par", fontName=font_primary, fontSize=14, alignment=0, textColor=config_utils.colors_dictionary["PARAGRAPH_COLOR"], spaceAfter=0))
 # ---------------------------------------------------
-try:
-    locale.setlocale(locale.LC_ALL, config.get("System","LOCALE"))
-except locale.Error as e:
-    logger.warning("Locale '%s' not supported on this system (%s). Using system default.", config.get("System","LOCALE"), e)
-# Calcola larghezza disponibile
-USABLE_WIDTH = PAGE_WIDTH - PAGE_MARGIN - PAGE_MARGIN
-USABLE_HEIGHT = PAGE_HEIGHT - PAGE_MARGIN - PAGE_MARGIN
+# NB: mapping colonne, geometria di pagina (USABLE_WIDTH/HEIGHT, Frame,
+# PageTemplate) e locale sono ora prodotti da _init_excel_mapping() /
+# _init_layout() / _init_locale() - vedi la chiamata dopo le callback *_on_page.
 #-----------------------------------------------------
 # oggetti per la griglia 3x3 dei prodotti
 raw_1x3_counter = 0
@@ -183,51 +212,15 @@ def matrix_3x3_on_page(canvas, doc):
     #
     canvas.restoreState()
 
-#=======================================================
-# ---------- definizione dei frame ---------------------
-#=======================================================
-# frame per la copertina a tutta larghezza (una colonna sola)
-cover_frame = Frame(
-        PAGE_MARGIN,
-        PAGE_MARGIN,
-        USABLE_WIDTH,
-        USABLE_HEIGHT,
-        leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
-        id='cover_frame',
-        showBoundary=0  # metti a 0 per nascondere i bordi
-    )
-# Frame per le pagine a tutta larghezza (una colonna sola)
-body_frame = Frame(
-    PAGE_MARGIN,
-    PAGE_MARGIN,
-    USABLE_WIDTH,
-    USABLE_HEIGHT,
-    leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
-    id='body_frame',
-    showBoundary=0  # metti a 0 per nascondere i bordi
-    )
-# matrix 3x3 frame a tutta larghezza (una colonna sola)
-matrix_3x3_frame = Frame(
-    PAGE_MARGIN,
-    PAGE_MARGIN,
-    USABLE_WIDTH,
-    USABLE_HEIGHT,
-    leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
-    id='matrix_3x3',
-    showBoundary=0  # metti a 0 per nascondere i bordi
-    )
-
 #=========================================================
-# ---------- definizione dei template di pagina ----------
+# ---------- init parametri da Excel2PDFCatalog.config ---
 #=========================================================
-# la copertina (prima pagina)
-cover_page_template = PageTemplate(id='Cover', frames=[cover_frame], onPage=cover_on_page)
-# corpo testo (una colonna)
-body_page_template = PageTemplate(id='Body', frames=[body_frame], onPage=body_on_page)
-# titolo categoria (pagina a una colonna) definita da 'category_on_page'
-category_page_template = PageTemplate(id='Category', frames=[body_frame], onPage=category_on_page)
-# colonne (i frame passati in lista verranno riempiti in sequenza)
-matrix_3x3_page_template = PageTemplate(id='Matrix_3x3', frames=[matrix_3x3_frame], onPage=matrix_3x3_on_page)
+# Prima esecuzione all'import: le callback *_on_page qui sopra sono gia' definite,
+# quindi _init_layout() puo' costruire Frame e PageTemplate. build_pdf() richiama
+# le stesse _init_* per raccogliere le modifiche fatte nel frattempo dalla UI.
+_init_excel_mapping()
+_init_layout()
+_init_locale()
 
 #=========================================================
 # ---------- costruzione dei documento -------------------
@@ -436,7 +429,7 @@ def _build_product_card(r, img, formatted_price):
         ('RIGHTPADDING', (0,0), (-1,-1), 0.3 * cm),
         ('LEFTPADDING', (0,0), (-1,-1), 0.3 * cm),
         ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
-        ('BOX', (0, 0), (-1, -1), 2, config_utils.colors_dictionary["TABLE_BORDER_COLOR"]),
+        ('BOX', (0, 0), (-1, -1), excel_config.card_border_width(), config_utils.colors_dictionary["TABLE_BORDER_COLOR"]),
         ('SPAN',(0,0),(-1,0)),
         ('SPAN',(0,1),(-1,1)),
         ('SPAN',(0,2),(-1,2)),
@@ -471,6 +464,11 @@ def build_pdf():
     #
     # styles
     _init_styles()
+    # (ri)leggo mapping colonne, geometria di pagina e locale da
+    # Excel2PDFCatalog.config: cosi' le modifiche fatte dalla UI valgono subito.
+    _init_excel_mapping()
+    _init_layout()
+    _init_locale()
     #
     raw_1x3_counter = 0
     raw_1x3_items = ["","",""]
@@ -501,8 +499,9 @@ def build_pdf():
     # mancante (es. header rinominato dall'utente) faceva risalire un KeyError
     # non gestito dal primo accesso a r[...] dentro _clean_row_fields/_format_price,
     # con un traceback poco chiaro. XLS_COLUMN_DESCRIPTION non e' incluso perche'
-    # non viene mai letto durante l'elaborazione delle righe.
-    required_columns = [XLS_ITEM, XLS_CATEGORY, XLS_COMPANY, XLS_SIZE, XLS_PRICE, XLS_COLUMN_IMG, XLS_BADGE]
+    # non viene mai letto durante l'elaborazione delle righe (in excel_config e'
+    # l'unica colonna con flag "obbligatoria" a False).
+    required_columns = excel_config.required_column_names()
     missing_columns = [c for c in required_columns if c not in df.columns]
     if missing_columns:
         logger.error("Missing required column(s) in Excel file: %s", missing_columns)

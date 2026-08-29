@@ -10,6 +10,7 @@ from pathlib import Path
 from app.logger import logger
 from app.paths_utils import resource_path, writable_path
 import app.i18n as i18n
+import app.excel_config as excel_config
 
 __version__ = "1.2.0"
 
@@ -85,6 +86,11 @@ def load_config():
     if language is None:
         language = i18n.detect_default()
     i18n.set_language(language)
+
+    # Excel2PDFCatalog.config (mapping colonne + MARGIN/CARD_BORDER_WIDTH/LOCALE):
+    # ricarica esplicita da disco a ogni avvio. L'auto-load all'import del modulo
+    # copre il caso dei test che non passano da load_config().
+    excel_config.load()
 
     if not os.path.exists(CONFIG_FILE):
         logger.warning("JSON Config file not found. Creating new file...")
@@ -192,6 +198,11 @@ def save_config():
 
         with open(CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=4)
+        # Persisto anche Excel2PDFCatalog.config (stessa azione "Salva" della UI:
+        # mapping colonne, MARGIN, CARD_BORDER_WIDTH, LOCALE).
+        if not excel_config.save():
+            logger.error("Excel2PDFCatalog.config save failed (see log above).")
+            return False
         return True
     except (TypeError, ValueError, OSError) as e:
         logger.error("JSON Config file error (SAVE): %s", e, exc_info=True)

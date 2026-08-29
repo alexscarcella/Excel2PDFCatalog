@@ -62,6 +62,7 @@ TRANSLATIONS = {
         "tab.catalog": "Catalogo",
         "tab.options": "Opzioni",
         "tab.colors": "Colori",
+        "tab.excelcols": "Colonne Excel",
 
         "menu.file": "File",
         "menu.file.save": "Salva configurazione",
@@ -180,6 +181,39 @@ TRANSLATIONS = {
         "hint.HIDE_PRICES": "I prezzi non vengono stampati nelle schede prodotto.",
         "hint.GENERATE_RANDOM_PRODUCTS_IMAGE": ("Se la foto del prodotto non viene trovata, crea un "
                                                 "segnaposto colorato invece di usare default.png."),
+
+        "excelcols.intro": ("I nomi qui sotto devono coincidere con l'intestazione (prima riga) "
+                            "del foglio .xlsx selezionato."),
+        "excelcols.mapping": "Mappatura colonne",
+        "excelcols.advanced": "Avanzate",
+        "options.layout": "Layout",
+        "status.invalid_number": "Valore non valido: inserisci un numero maggiore di zero.",
+
+        "field.XLS_COLUMN_CATEGORY": "Colonna categoria merceologica",
+        "field.XLS_COLUMN_COMPANY": "Colonna azienda / produttore",
+        "field.XLS_COLUMN_ITEM": "Colonna nome prodotto",
+        "field.XLS_COLUMN_SIZE": "Colonna formato",
+        "field.XLS_COLUMN_PRICE": "Colonna prezzo",
+        "field.XLS_COLUMN_DESCRIPTION": "Colonna descrizione",
+        "field.XLS_COLUMN_IMG": "Colonna codice immagine",
+        "field.XLS_BADGE": "Colonna badge / etichetta",
+
+        "hint.XLS_COLUMN_CATEGORY": "A ogni cambio di valore viene inserita una nuova pagina di categoria.",
+        "hint.XLS_COLUMN_COMPANY": "Usata per il titolo del produttore e (se attivo) per il salto pagina.",
+        "hint.XLS_COLUMN_ITEM": "Nome del prodotto mostrato nella scheda.",
+        "hint.XLS_COLUMN_SIZE": "Formato/dimensione mostrato in basso a sinistra nella scheda.",
+        "hint.XLS_COLUMN_PRICE": "Deve contenere valori numerici.",
+        "hint.XLS_COLUMN_DESCRIPTION": "Testo opzionale aggiunto alla scheda se l'opzione relativa è attiva.",
+        "hint.XLS_COLUMN_IMG": "Nome del file immagine (senza estensione) nella cartella immagini prodotti.",
+        "hint.XLS_BADGE": "Testo della fascetta sopra la scheda (es. NOVITÀ). Può essere vuoto.",
+
+        "field.MARGIN": "Margine pagina (cm)",
+        "field.CARD_BORDER_WIDTH": "Spessore bordo scheda (pt)",
+        "field.LOCALE": "Locale di sistema",
+        "hint.MARGIN": "Margine bianco attorno al contenuto di ogni pagina A4.",
+        "hint.CARD_BORDER_WIDTH": "Spessore del riquadro attorno a ogni scheda prodotto, in punti.",
+        "hint.LOCALE": ("Scegli dall'elenco o digita un valore specifico della piattaforma "
+                        "(es. it_IT.UTF-8 su macOS/Linux, Italian_Italy.1252 su Windows)."),
     },
 
     "en": {
@@ -191,6 +225,7 @@ TRANSLATIONS = {
         "tab.catalog": "Catalog",
         "tab.options": "Options",
         "tab.colors": "Colours",
+        "tab.excelcols": "Excel columns",
 
         "menu.file": "File",
         "menu.file.save": "Save configuration",
@@ -308,6 +343,38 @@ TRANSLATIONS = {
         "hint.HIDE_PRICES": "Prices are not printed on the product cards.",
         "hint.GENERATE_RANDOM_PRODUCTS_IMAGE": ("When a product photo is not found, creates a coloured "
                                                 "placeholder instead of using default.png."),
+
+        "excelcols.intro": "The names below must match the header row of the selected .xlsx file.",
+        "excelcols.mapping": "Column mapping",
+        "excelcols.advanced": "Advanced",
+        "options.layout": "Layout",
+        "status.invalid_number": "Invalid value: enter a number greater than zero.",
+
+        "field.XLS_COLUMN_CATEGORY": "Product-category column",
+        "field.XLS_COLUMN_COMPANY": "Company / producer column",
+        "field.XLS_COLUMN_ITEM": "Product-name column",
+        "field.XLS_COLUMN_SIZE": "Size column",
+        "field.XLS_COLUMN_PRICE": "Price column",
+        "field.XLS_COLUMN_DESCRIPTION": "Description column",
+        "field.XLS_COLUMN_IMG": "Image-code column",
+        "field.XLS_BADGE": "Badge / label column",
+
+        "hint.XLS_COLUMN_CATEGORY": "Every time this value changes a new category page is inserted.",
+        "hint.XLS_COLUMN_COMPANY": "Used for the producer title and (if enabled) the page break.",
+        "hint.XLS_COLUMN_ITEM": "Product name shown on the card.",
+        "hint.XLS_COLUMN_SIZE": "Size shown at the bottom-left of the card.",
+        "hint.XLS_COLUMN_PRICE": "Must contain numeric values.",
+        "hint.XLS_COLUMN_DESCRIPTION": "Optional text added to the card when the related option is on.",
+        "hint.XLS_COLUMN_IMG": "Image file name (without extension) in the product images folder.",
+        "hint.XLS_BADGE": "Ribbon text above the card (e.g. NEW). May be empty.",
+
+        "field.MARGIN": "Page margin (cm)",
+        "field.CARD_BORDER_WIDTH": "Card border width (pt)",
+        "field.LOCALE": "System locale",
+        "hint.MARGIN": "White margin around the content of every A4 page.",
+        "hint.CARD_BORDER_WIDTH": "Thickness of the frame around each product card, in points.",
+        "hint.LOCALE": ("Pick from the list or type a platform-specific value "
+                        "(e.g. it_IT.UTF-8 on macOS/Linux, Italian_Italy.1252 on Windows)."),
     },
 }
 

@@ -13,7 +13,9 @@ from pathlib import Path
 import pandas as pd
 
 import app.config_utils as config_utils
+import app.excel_config as excel_config
 import app.build_PDF as build_PDF
+from reportlab.lib.units import cm
 
 
 class TestFormatPrice(unittest.TestCase):
@@ -134,6 +136,34 @@ class TestBuildPdfFlushesTrailingRow(_BuildPdfTestCase):
         self.assertGreater(pdfs[0].stat().st_size, 0)
         self.assertEqual(build_PDF.raw_1x3_counter, 0)
         self.assertEqual(build_PDF.raw_1x3_items, ["", "", ""])
+
+
+class TestBuildPdfLayoutParamsApplyAtBuildTime(_BuildPdfTestCase):
+    """MARGIN e CARD_BORDER_WIDTH di Excel2PDFCatalog.config sono riletti da
+    build_pdf() (via _init_layout/_build_product_card), non solo all'import:
+    una modifica ha effetto senza riavviare l'app."""
+
+    def setUp(self):
+        super().setUp()
+        self._orig_layout = dict(excel_config.layout)
+
+    def tearDown(self):
+        excel_config.layout.clear()
+        excel_config.layout.update(self._orig_layout)
+        build_PDF._init_layout()   # ripristina la geometria di modulo
+        super().tearDown()
+
+    def test_margin_change_is_picked_up_by_build_pdf(self):
+        excel_config.layout["MARGIN"] = 3.0
+        excel_config.layout["CARD_BORDER_WIDTH"] = 6.0
+        self._write_excel(2)
+
+        build_PDF.build_pdf()
+
+        self.assertAlmostEqual(build_PDF.PAGE_MARGIN, 3.0 * cm)
+        pdfs = list(Path(self._tmp_dir.name).glob("*.pdf"))
+        self.assertEqual(len(pdfs), 1)
+        self.assertGreater(pdfs[0].stat().st_size, 0)
 
 
 if __name__ == "__main__":
