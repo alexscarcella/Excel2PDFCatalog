@@ -11,7 +11,7 @@ from app.logger import logger
 from app.paths_utils import resource_path, writable_path
 import app.i18n as i18n
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 # CONFIG_FILE e' un path scrivibile e indipendente dalla cwd: quando l'app e'
 # impacchettata con PyInstaller su macOS punta a ~/Library/Application Support/

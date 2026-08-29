@@ -1,3 +1,4 @@
+import os
 import platform
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -7,6 +8,7 @@ from tkinter import font as tkfont
 from pathlib import Path
 
 from app.logger import logger
+from app.paths_utils import resource_path
 import app.config_utils as config_utils
 import app.build_PDF as build_PDF
 from app import i18n
@@ -87,6 +89,30 @@ class Tooltip:
         if self._tip is not None:
             self._tip.destroy()
             self._tip = None
+
+
+def _set_window_icon(root):
+    """Icona della finestra (e della taskbar/Dock quando si esegue da sorgente).
+
+    Best-effort: qualsiasi errore viene solo loggato, non deve mai impedire
+    l'avvio della UI. Nelle build PyInstaller l'icona dell'eseguibile/.app la
+    imposta gia' `--icon` nel workflow; qui si copre la finestra Tk e l'uso da
+    sorgente. `assets/icon/` e' una risorsa bundlata -> `resource_path()`."""
+    try:
+        png = resource_path("assets/icon/icon_256.png")
+        if os.path.exists(png):
+            root._e2pc_icon = tk.PhotoImage(file=png)   # riferimento vivo: il GC lo distruggerebbe
+            root.iconphoto(True, root._e2pc_icon)
+    except Exception as exc:
+        logger.warning("Window iconphoto not set: %s", exc)
+
+    if platform.system() == "Windows":
+        try:
+            ico = resource_path("assets/icon/icon.ico")
+            if os.path.exists(ico):
+                root.iconbitmap(default=ico)
+        except Exception as exc:
+            logger.warning("Window iconbitmap not set: %s", exc)
 
 
 def _init_style(root):
@@ -176,6 +202,7 @@ def build_UI_and_GO():
 
     root = tk.Tk()
     root.title(f"Excel2PDFCatalog - {config_utils.__version__}")
+    _set_window_icon(root)
     _init_style(root)
 
     # --- stato condiviso tra i builder annidati -----------------------------

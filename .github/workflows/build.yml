@@ -69,12 +69,14 @@ jobs:
       run: |
         pyinstaller --onefile --windowed `
           --name Excel2PDFCatalog `
+          --icon assets/icon/icon.ico `
           --add-data "app;app" `
           --add-data "fonts;fonts" `
           --add-data "logs;logs" `
           --add-data "txt_intros;txt_intros" `
           --add-data "img_products;img_products" `
           --add-data "img_general;img_general" `
+          --add-data "assets/icon;assets/icon" `
           --add-data "example_excel;example_excel" `
           --add-data "Excel2PDFCatalog.config;." `
           --hidden-import=openpyxl `
@@ -97,12 +99,14 @@ jobs:
         # niente estrazione temporanea all'avvio e Tcl/Tk bundlato in modo stabile.
         pyinstaller --onedir --windowed \
           --name Excel2PDFCatalog \
+          --icon assets/icon/icon.icns \
           --add-data "app:app" \
           --add-data "fonts:fonts" \
           --add-data "logs:logs" \
           --add-data "txt_intros:txt_intros" \
           --add-data "img_products:img_products" \
           --add-data "img_general:img_general" \
+          --add-data "assets/icon:assets/icon" \
           --add-data "example_excel:example_excel" \
           --add-data "Excel2PDFCatalog.config:." \
           --hidden-import=openpyxl \
@@ -186,16 +190,16 @@ jobs:
         1. Extract all files to a folder
         2. Run Excel2PDFCatalog.exe
         
-        USAGE:
-        - Select your Excel file
-        - Choose image folders
-        - Set output folder
-        - Click 'Go' to generate PDF catalog
-        
+        USAGE (the window has tabs; UI language IT/EN toggle top-right):
+        - Sources tab: pick the Excel file, the intro .txt, and the folders
+        - Catalog tab: set title / subtitle / footer
+        - Options / Colors tabs: tweak layout flags and colours
+        - Click 'Save & build PDF' at the bottom
+
         For more information visit:
         https://github.com/alexscarcella/Excel2PDFCatalog
         "@
-        
+
         $readme | Out-File -FilePath "package\README.txt" -Encoding UTF8
         
         # Crea ZIP
@@ -238,12 +242,12 @@ jobs:
         - ${{ matrix.compat_note }}
         - Per sapere che Mac hai: menu Apple > Informazioni su questo Mac
 
-        USAGE:
-        - Select your Excel file
-        - Choose image folders
-        - Set output folder
-        - Click 'Go' to generate PDF catalog
-        
+        USAGE (the window has tabs; UI language IT/EN toggle top-right):
+        - Sources tab: pick the Excel file, the intro .txt, and the folders
+        - Catalog tab: set title / subtitle / footer
+        - Options / Colors tabs: tweak layout flags and colours
+        - Click 'Save & build PDF' at the bottom
+
         For more information visit:
         https://github.com/alexscarcella/Excel2PDFCatalog
         EOF

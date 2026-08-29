@@ -1,9 +1,9 @@
 <!-- Copilot / AI agent instructions for Excel2PDFCatalog -->
 # Excel2PDFCatalog — AI Agent Instructions
 
-These concise notes help an AI coding agent be productive in this repository. Focus on the files and patterns below when changing behavior, debugging, or adding features.
+These concise notes help an AI coding agent be productive in this repository. Focus on the files and patterns below when changing behavior, debugging, or adding features. `CLAUDE.md` at the repo root has the fuller architecture reference.
 
-- **Purpose**: converts an Excel file into a PDF catalog using a small Tkinter UI (`Excel2PDFCatalog.py` → `app/ui_interface.py`) and a PDF builder (`app/build_PDF.py`).
+- **Purpose**: converts a product-list Excel file into a PDF catalog using a tabbed Tkinter/`ttk` desktop UI (`Excel2PDFCatalog.py` → `app/ui_interface.py`) and a ReportLab PDF builder (`app/build_PDF.py`). The UI is bilingual (Italian/English, switchable at runtime) and stdlib-only — no UI dependency beyond `tkinter`.
 
 - **Run / debug (Windows PowerShell)**:
   - Create venv and install deps:
@@ -12,50 +12,44 @@ These concise notes help an AI coding agent be productive in this repository. Fo
     .\.venv\Scripts\activate
     pip install -r app/requirements.txt
     ```
-  - Run app:
-    ```powershell
-    python Excel2PDFCatalog.py
-    ```
-  - Logs: `./logs/app.log` (rotating file configured in `app/logger.py`).
+  - Run app: `python Excel2PDFCatalog.py`
+  - Run tests (stdlib `unittest`, no extra dep): `python -m unittest discover -s tests -v`
+  - Logs: `./logs/app.log` from source (rotating handler in `app/logger.py`); a per-user data dir when frozen (`~/Library/Application Support/Excel2PDFCatalog`, `%LOCALAPPDATA%\Excel2PDFCatalog`).
 
 - **Key files / responsibilities**:
-  - `Excel2PDFCatalog.py` — program entrypoint (wires UI and startup).
-  - `app/ui_interface.py` — Tkinter UI, binds controls to `app/config_utils` and calls `app/build_PDF.build_pdf()`.
-  - `app/config_utils.py` — runtime defaults, `load_config()` / `save_config()` and in-memory state (colors, paths, flags, excel_file, title/subtitle/footer).
-  - `app/build_PDF.py` — PDF assembly using ReportLab. Reads `Excel2PDFCatalog.config` (ConfigParser) for Excel column names and layout constants. Consumes `app/config_utils` runtime state.
-  - `Excel2PDFCatalog.config` — configparser file holding Excel column names (XLS_COLUMN_*) and layout values used by `build_PDF.py`.
-  - `app/images_utils.py` — image helpers (resizing, generating placeholders).
-  - `fonts/` — custom font files used by ReportLab; `build_PDF.py` registers `TTFont` with a path like `./fonts/Core Bandi Face W01 Regular.ttf`.
+  - `Excel2PDFCatalog.py` — entrypoint. Installs a `sys.excepthook` writing `crash.log` before any other import, then `config_utils.load_config()` + `ui_interface.build_UI_and_GO()`.
+  - `app/ui_interface.py` — the whole UI in `build_UI_and_GO()`: a `ttk.Notebook` (Sources / Catalog / Options / Colors tabs) + a persistent status/action bar + a menu. Still imperative, nested-closure style; callbacks write straight into `app/config_utils` module state. `_init_style()` forces the `clam` theme + platform font; `_set_window_icon()` loads `assets/icon/`.
+  - `app/config_utils.py` — runtime state + `load_config()` / `save_config()` (JSON `config.json`). In-memory: `language`, `excel_file`, `txt_intro_file`, `title`/`subtitle`/`footer`, and dicts `colors_dictionary` / `path_dictionary` / `flags_dictionary`. `COLOR_DEFAULTS` / `FLAG_DEFAULTS` snapshot defaults for the UI reset buttons.
+  - `app/i18n.py` — bilingual layer (no Tk, no deps): `t(key, **kw)` (fallback EN → key), `set_language()` + `on_language_change()` hooks, `field_label()` / `field_hint()` (translated dict-key labels, fallback `.replace('_',' ').capitalize()`), and `TRANSLATIONS` / `COLOR_GROUPS` / `FLAG_ORDER`. Only display strings are translated; dict keys stay English.
+  - `app/build_PDF.py` — PDF assembly with ReportLab. Reads `Excel2PDFCatalog.config` (ConfigParser) for `XLS_COLUMN_*` and layout constants **at import time**; registers the `fonts/` TTF. Consumes `config_utils` state at build time.
+  - `app/paths_utils.py` — `resource_path()` (read-only bundled assets) / `writable_path()` (runtime files). Route every filesystem path through these so source and PyInstaller-frozen builds both work.
+  - `app/images_utils.py` — `load_image_path()` (tries `.png`/`.jpg`/`.jpeg`) and `generate_image()` placeholder blobs.
+  - `Excel2PDFCatalog.config` — INI: Excel column names (`XLS_COLUMN_*`) + `MARGIN` / `LOCALE` used by `build_PDF.py`.
+  - `fonts/` — custom TTF; `assets/icon/` — app/window icon (`make_icon.py` regenerates it).
 
 - **Important repository conventions & patterns**:
-  - `config_utils` is the single source of runtime UI state: UI writes directly to module-level variables (e.g. `config_utils.title`, `path_dictionary`, `colors_dictionary`) which `build_PDF` reads at build time. Prefer editing state there instead of passing many params.
-  - `path_dictionary` values are `pathlib.Path` objects by default; when saving to `config.json` they are stringified. When reading, `load_config()` re-converts to `Path`.
-  - Color and style data live in `config_utils.colors_dictionary` and are directly referenced by `build_PDF.py` when creating `ParagraphStyle` and drawing canvases.
-  - Excel-to-field mapping is controlled by `Excel2PDFCatalog.config` (read with `configparser` in `build_PDF.py`). Column names like `XLS_COLUMN_IMG` are used as DataFrame keys — changing them requires updating the config file.
-  - Images: product images are expected under `img_products/` with filenames matching the Excel image column (e.g. `<image_key>.png`). The code falls back to generating placeholder images under `tmp/` if missing.
-  - UI uses Tkinter and `trace_add` / `BooleanVar` binding patterns. When adding controls, follow existing pattern (update `config_utils` state and log via `app/logger.py`).
-  - Logging uses a shared `AppLogger` (see `app/logger.py`). Use `logger.info/warning/error` consistently.
+  - `config_utils` is the single source of runtime UI state: the UI writes directly to its module-level variables/dicts, which `build_PDF` reads at build time. Prefer editing state there over threading params.
+  - `path_dictionary` values are `pathlib.Path`; stringified in `config.json`, re-`Path()`-ed on load. Missing saved paths fall back to defaults instead of failing.
+  - `colors_dictionary` values are hex strings referenced directly by `build_PDF.py` `ParagraphStyle`s and canvas fills.
+  - The UI generates its Colors/Options/Folders controls by **iterating those dicts**, so a new key needs no widget code — it renders via `i18n.field_label()`. But: add its default in `config_utils.py`, a `field.<KEY>` (+ `hint.<KEY>` for a flag) string to **both** `it` and `en` in `i18n.TRANSLATIONS` (a test asserts key parity), and — for a color — a group in `i18n.COLOR_GROUPS`.
+  - Excel-to-field mapping is `Excel2PDFCatalog.config`; changing an `XLS_COLUMN_*` name requires updating the matching `config.get(...)` in `build_PDF.py`.
+  - Logging: shared `AppLogger` (`app/logger.py`). Use `logger.info/warning/error`.
 
-- **PDF layout notes (useful examples)**:
-  - Styles are defined at the top of `app/build_PDF.py` and reference `config_utils.colors_dictionary` for colors. If you change a color key name, update both `config_utils` defaults and `config.json` keys.
-  - `build_PDF` builds a `story` list of Flowables. Layout sections use PageTemplates: `Cover`, `Body`, `Category`, `Matrix_3x3`. When changing pagination behavior, adjust NextPageTemplate/PageBreak logic.
-  - Fonts: ensure the referenced TTF exists in `fonts/` and the registration call in `build_PDF.py` matches the filename.
+- **PDF layout notes**:
+  - `build_pdf()` builds a `story` list of Flowables across four PageTemplates: `Cover`, `Body`, `Category`, `Matrix_3x3`. Pagination is driven by pushing `NextPageTemplate` + `PageBreak`; products flow through `flush_1x3_row()` into a 3-per-row grid. Per-row work is split into `_clean_row_fields` / `_format_price` / `_insert_category_page` / `_insert_company_page` / `_load_product_image` / `_build_product_card`.
+  - Fonts: the referenced TTF must exist in `fonts/` and match the `registerFont` call.
 
 - **Configuration persistence**:
-  - `config.json` is generated by `app/config_utils.save_config()` and read by `load_config()`. It stores `excel_file`, `title`, `subtitle`, `footer`, `break_page_company`, colors, and paths. The UI calls `save_config()` after runs.
-  - `Excel2PDFCatalog.config` (INI-style) is used by `build_PDF.py` to map Excel columns — do not conflate this with `config.json`.
+  - `config.json` (repo root when run from source, per-user data dir when frozen) — generated by `config_utils.save_config()`, read by `load_config()`. Stores `language`, `excel_file`, `txt_intro_file`, `title`/`subtitle`/`footer`, every color, every path, every flag. The UI saves it after a build and on language change.
+  - `Excel2PDFCatalog.config` (INI) is a *different* file — Excel column mapping only. Do not conflate.
 
-- **When editing code, check these cross-cutting items**:
-  - If you change a `path_dictionary` key, update `app/ui_interface.py` (UI folder labels/buttons) and `app/build_PDF.py` where paths are composed (e.g. `PRODUCTS_IMAGES_FOLDER_PATH`).
-  - If you rename an Excel column key in `Excel2PDFCatalog.config` ensure code references in `build_PDF.py` (XLS_*) are updated accordingly.
-  - When adding a new dependency, update `app/requirements.txt` and mention the change in README.
-
-- **Quick examples**:
-  - To change cover title color: edit `app/config_utils.py` default `colors_dictionary['COVER_TITLE_COLOR']`, or change `config.json` key `COVER_TITLE_COLOR`. `build_PDF.py` reads the value at runtime.
-  - To modify how product grid flows: edit `flush_1x3_row()` and `TABLE` construction in `app/build_PDF.py`.
+- **Cross-cutting checks when editing**:
+  - New/renamed `path_dictionary` key → update `config_utils.py` default and every path composition in `build_PDF.py`; the UI picks it up automatically.
+  - New/renamed color or flag key → also add the `i18n` strings (both languages) and, for colors, `i18n.COLOR_GROUPS`.
+  - Never hardcode paths against `cwd` / `__file__` — use `paths_utils.resource_path()` / `writable_path()`.
+  - New dependency → update `app/requirements.txt`, the `--collect-all` / `--hidden-import` lines in `.github/workflows/build.yml`, and mention it in the README. Keep the UI stdlib-only.
+  - Renaming/moving icon files → keep `assets/icon/`, the `--icon` + `--add-data` lines in `build.yml`, and `_set_window_icon()` in sync.
 
 - **Developer workflow tips**:
-  - There are no unit tests in the repo. Validate changes by running the GUI and generating a sample PDF using `example_excel/` and `example_catalog/`.
-  - Use the log `./logs/app.log` to see runtime messages and stack traces.
-
-If anything here is incomplete or you want examples (eg. a short code sample to change layout or an explanation of a specific function), tell me what to expand and I'll iterate.
+  - `tests/` is a stdlib `unittest` suite (`config_utils`, `i18n`, `build_PDF`, `images_utils`) — run it before and after changes. There is no lint tooling and no CI on push; the only workflow is a manual `workflow_dispatch` PyInstaller packaging job.
+  - The Tkinter rendering path has no automated coverage — validate UI changes by running the GUI, switching language, and generating a PDF from `example_excel/Product list example.xlsx`, then checking `logs/app.log`.
