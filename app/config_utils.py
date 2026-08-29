@@ -12,7 +12,7 @@ from app.paths_utils import resource_path, writable_path
 import app.i18n as i18n
 import app.excel_config as excel_config
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 # CONFIG_FILE e' un path scrivibile e indipendente dalla cwd: quando l'app e'
 # impacchettata con PyInstaller su macOS punta a ~/Library/Application Support/
