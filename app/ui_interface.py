@@ -1,5 +1,8 @@
 import os
 import platform
+import subprocess
+import sys
+import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
@@ -288,6 +291,92 @@ def build_UI_and_GO():
             _set_status(t("status.save_failed"), "error")
             messagebox.showerror(t("dialog.error.title"), t("dialog.save_failed.msg"))
 
+    def _open_target(target):
+        """Apre un file o una cartella con l'applicazione di sistema."""
+        target = str(target)
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(target)  # noqa: S606 - apertura fidata di un path locale
+            elif sys.platform == "darwin":
+                subprocess.run(["open", target], check=False)
+            else:
+                subprocess.run(["xdg-open", target], check=False)
+        except Exception as e:
+            logger.error("Impossibile aprire '%s': %s", target, e, exc_info=True)
+            messagebox.showerror(t("dialog.error.title"),
+                                 t("dialog.open_failed.msg", path=target))
+
+    def _run_build_with_progress():
+        """Esegue build_PDF.build_pdf() in un thread di lavoro mostrando una
+        finestra modale con barra di avanzamento. Ritorna il path del PDF
+        oppure None se la generazione e' fallita (errore gia' segnalato)."""
+        win = tk.Toplevel(root)
+        win.title(t("dialog.building.title"))
+        win.transient(root)
+        win.resizable(False, False)
+        win.protocol("WM_DELETE_WINDOW", lambda: None)  # non chiudibile a mano
+        ttk.Label(win, text=t("dialog.building.msg")).pack(
+            padx=PAD_XL, pady=(PAD_XL, PAD_M))
+        bar = ttk.Progressbar(win, mode="indeterminate", length=300)
+        bar.pack(padx=PAD_XL, pady=(0, PAD_XL))
+        bar.start(12)
+        win.update_idletasks()
+        win.grab_set()
+
+        outcome = {}
+
+        def worker():
+            try:
+                outcome["path"] = build_PDF.build_pdf()
+            except BaseException as e:  # cattura anche SystemExit/argparse
+                outcome["error"] = e
+
+        th = threading.Thread(target=worker, name="build-pdf", daemon=True)
+        th.start()
+
+        def poll():
+            if th.is_alive():
+                root.after(80, poll)
+            else:
+                win.destroy()
+
+        root.after(80, poll)
+        win.wait_window()
+
+        if "error" in outcome:
+            e = outcome["error"]
+            logger.error("Build failed: %s", e,
+                         exc_info=isinstance(e, Exception))
+            _set_status(t("status.build_failed", err=e), "error")
+            messagebox.showerror(t("dialog.error.title"),
+                                 t("dialog.build_failed.msg", err=e))
+            return None
+        return outcome.get("path")
+
+    def _show_build_done_dialog(pdf_path):
+        """Popover di conferma con i pulsanti 'Apri file' / 'Apri cartella'."""
+        win = tk.Toplevel(root)
+        win.title(t("dialog.done.title"))
+        win.transient(root)
+        win.resizable(False, False)
+        ttk.Label(win, text=t("dialog.done.msg"), wraplength=380).pack(
+            padx=PAD_XL, pady=(PAD_XL, PAD_S))
+        ttk.Label(win, text=str(pdf_path), style="Path.TLabel",
+                  wraplength=380).pack(padx=PAD_XL, pady=(0, PAD_M))
+        btns = ttk.Frame(win)
+        btns.pack(padx=PAD_XL, pady=(0, PAD_XL))
+        ttk.Button(btns, text=t("btn.open_file"),
+                   command=lambda: _open_target(pdf_path)).pack(
+            side="left", padx=PAD_XS)
+        ttk.Button(btns, text=t("btn.open_folder"),
+                   command=lambda: _open_target(Path(pdf_path).parent)).pack(
+            side="left", padx=PAD_XS)
+        ttk.Button(btns, text=t("btn.close"), style="Accent.TButton",
+                   command=win.destroy).pack(side="left", padx=PAD_XS)
+        win.update_idletasks()
+        win.grab_set()
+        win.wait_window()
+
     def start_build_pdf():
         # FIX storico (revisione batch B, punto 7): Tkinter intercetta le eccezioni
         # dei callback dei widget e non invoca il sys.excepthook custom; senza
@@ -306,9 +395,11 @@ def build_UI_and_GO():
                 return
             _set_status(t("status.building"), "normal")
             root.update_idletasks()
-            build_PDF.build_pdf()
+            pdf_path = _run_build_with_progress()
+            if pdf_path is None:
+                return  # errore gia' segnalato da _run_build_with_progress()
             _set_status(t("status.build_ok"), "ok")
-            messagebox.showinfo(t("dialog.done.title"), t("dialog.done.msg"))
+            _show_build_done_dialog(pdf_path)
             if not config_utils.save_config():
                 messagebox.showerror(t("dialog.error.title"), t("dialog.save_failed.msg"))
         except Exception as e:
