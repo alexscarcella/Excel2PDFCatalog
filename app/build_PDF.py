@@ -370,7 +370,10 @@ def _load_product_image(r):
     """Carica l'immagine del prodotto cercando prima il file corrispondente al
     codice Excel, poi (se abilitato) generandone una casuale, infine ricadendo
     su default.png. Ritorna un oggetto reportlab Image, oppure None."""
-    IMAGE_SIZE = 4.4 * cm
+    # 4.1 cm (era 4.4): la scheda ha ora due righe ad altezza fissa (nome ~1.8 cm
+    # e formato/prezzo ~0.95 cm); ridurre di poco l'immagine mantiene il totale
+    # dentro la cella della griglia 3x3 con un margine di sicurezza.
+    IMAGE_SIZE = 4.1 * cm
     img = None
     try:
         # FIX SICUREZZA (punto 8 della revisione): il valore della cella Excel veniva
@@ -428,13 +431,30 @@ def _build_product_card(r, img, formatted_price):
         mode='shrink', hAlign='CENTER', vAlign='MIDDLE',
     )
 
+    # La riga formato/prezzo (indice 3) ha altezza FISSA (SIZE_ROW_HEIGHT). Se
+    # fosse a contenuto libero, un valore di 'Formato' lungo (es. "Confezione da
+    # 10") andrebbe a capo su 2 righe e farebbe crescere l'intera scheda oltre la
+    # cella della griglia 3x3: il bordo arrotondato si deformava e si
+    # sovrapponeva alle schede vicine. Con l'altezza fissa il footprint resta
+    # costante; formato e prezzo sono avvolti in un KeepInFrame(mode='shrink')
+    # che li rimpicciolisce solo se non entrano nella riga.
+    SIZE_ROW_HEIGHT = 0.95 * cm
+    size_flowable = KeepInFrame(
+        0, SIZE_ROW_HEIGHT, [Paragraph(formatted_size, styles['TableItemSize'])],
+        mode='shrink', hAlign='LEFT', vAlign='MIDDLE',
+    )
+    price_flowable = KeepInFrame(
+        0, SIZE_ROW_HEIGHT, [Paragraph(formatted_price, styles['TableItemPrice'])],
+        mode='shrink', hAlign='RIGHT', vAlign='MIDDLE',
+    )
+
     info = [
         [img, ""],
         [Paragraph(formatted_company, styles['TableCompanyName']), ""],
         [name_flowable, ""],
-        [Paragraph(formatted_size, styles['TableItemSize']), Paragraph(formatted_price, styles['TableItemPrice'])]
+        [size_flowable, price_flowable]
     ]
-    table_item = Table(info, colWidths=[USABLE_WIDTH/6-TABLE_GAP, USABLE_WIDTH/6-TABLE_GAP], rowHeights=[None, 0.5*cm, NAME_ROW_HEIGHT, None])
+    table_item = Table(info, colWidths=[USABLE_WIDTH/6-TABLE_GAP, USABLE_WIDTH/6-TABLE_GAP], rowHeights=[None, 0.5*cm, NAME_ROW_HEIGHT, SIZE_ROW_HEIGHT])
     table_item.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
         ("VALIGN", (0, 0), (-1,-1), "MIDDLE"),
@@ -447,9 +467,12 @@ def _build_product_card(r, img, formatted_price):
         # scheda: padding orizzontale minimo per non forzare a capo troppo presto
         ('LEFTPADDING', (0,2), (-1,2), 3),
         ('RIGHTPADDING', (0,2), (-1,2), 3),
-        # la riga formato/prezzo (indice 3) e' una sola riga: meno padding sopra,
-        # cosi' l'altezza recuperata va alla riga del nome
+        # riga formato/prezzo (indice 3): padding ridotto su tutti i lati per
+        # lasciare piu' spazio utile al testo dentro la riga ad altezza fissa
         ('TOPPADDING', (0,3), (-1,3), 4),
+        ('BOTTOMPADDING', (0,3), (-1,3), 3),
+        ('LEFTPADDING', (0,3), (-1,3), 4),
+        ('RIGHTPADDING', (0,3), (-1,3), 4),
         ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
         ('BOX', (0, 0), (-1, -1), excel_config.card_border_width(), config_utils.colors_dictionary["TABLE_BORDER_COLOR"]),
         ('SPAN',(0,0),(-1,0)),

@@ -130,6 +130,48 @@ class TestBuildProductCardLongName(unittest.TestCase):
         self.assertEqual(getattr(kif, "_scale", 1.0), 1.0)  # nessuno shrink: nessuna regressione
 
 
+class TestBuildProductCardSizeRow(unittest.TestCase):
+    """La riga formato/prezzo ha altezza fissa: un valore di 'Formato' lungo
+    (che va a capo su 2 righe) non deve piu' far crescere la scheda oltre la
+    cella della griglia 3x3 (bordo deformato / sovrapposizioni)."""
+
+    def setUp(self):
+        build_PDF._init_styles()
+
+    def _card(self, size):
+        row = {
+            build_PDF.XLS_COMPANY: "Acme",
+            build_PDF.XLS_ITEM: "Prodotto",
+            build_PDF.XLS_SIZE: size,
+            build_PDF.XLS_BADGE: "",
+            build_PDF.XLS_CATEGORY: "Cat",
+        }
+        return build_PDF._build_product_card(row, "", "€ 2053.90")
+
+    def _inner_table(self, card):
+        # _build_product_card ritorna table_item_big: riga 1 = table_item annidato
+        return card._cellvalues[1][0]
+
+    def test_only_the_image_row_is_variable_height(self):
+        inner = self._inner_table(self._card("Confezione da 10"))
+        # indice 0 = immagine (contenuto a dimensione fissa); le righe azienda,
+        # nome e formato/prezzo sono tutte ad altezza fissa -> footprint costante.
+        self.assertIsNone(inner._rowHeights[0])
+        self.assertTrue(all(h is not None for h in inner._rowHeights[1:]),
+                        f"attese righe fisse, trovato {inner._rowHeights}")
+
+    def test_size_and_price_are_wrapped_in_keepinframe(self):
+        inner = self._inner_table(self._card("Confezione da 10"))
+        size_cell, price_cell = inner._cellvalues[3]
+        self.assertIsInstance(size_cell, KeepInFrame)
+        self.assertIsInstance(price_cell, KeepInFrame)
+
+    def test_long_and_short_size_give_the_same_row_heights(self):
+        short = self._inner_table(self._card("1 pz"))
+        long = self._inner_table(self._card("Confezione da 10"))
+        self.assertEqual(short._rowHeights, long._rowHeights)
+
+
 class _BuildPdfTestCase(unittest.TestCase):
     """Isola i path/scalari di config_utils in cartelle temporanee, cosi' i
     test non toccano i file reali del progetto (stesso approccio di
