@@ -478,13 +478,29 @@ def _build_product_card(r, img, formatted_price):
 
 
 # metodo che costruisce il file PDF
+def _emit_progress(cb, **event):
+    """Invoca `cb` (se presente) con un dict che descrive l'avanzamento.
+
+    Chiavi: 'phase' ('rows' | 'render' | 'done'), 'fraction' (0.0-1.0 sul
+    totale), e per la fase 'rows' anche 'index', 'total', 'category',
+    'company', 'product'. Un'eccezione nel callback non blocca la build.
+    """
+    if cb is None:
+        return
+    try:
+        cb(event)
+    except Exception:  # pragma: no cover - il progresso non deve mai far fallire la build
+        logger.warning("progress_cb ha sollevato un'eccezione", exc_info=True)
+
+
 def build_pdf(progress_cb=None):
     """Genera il PDF del catalogo.
 
-    progress_cb: callable opzionale invocato durante l'assemblaggio del
-    documento con la firma di ReportLab ``(typ, value)`` (typ in
-    'STARTED'/'SIZE_EST'/'PAGE'/'PROGRESS'/'FINISHED'). Serve alla UI per
-    animare una barra di avanzamento senza bloccare il thread principale.
+    progress_cb: callable opzionale invocato con un dict di avanzamento
+    (vedi _emit_progress). La fase 'rows' copre 0-90%% (una notifica per
+    riga Excel, con categoria/produttore/prodotto correnti), la fase
+    'render' 90-100%% (assemblaggio ReportLab). Serve alla UI per animare
+    una barra 0-100%% e un log scorrevole senza bloccare il main thread.
 
     Ritorna il path del file PDF creato (str).
     """
@@ -541,9 +557,16 @@ def build_pdf(progress_cb=None):
     previous_category = "" # la variabile che mi permette di capire se c'e' un cambio di categoria in modo da inserire una pagina con il titolo
     previous_company = "" # la variabile che mi permette di capire se c'e' un cambio di azienda in modo da inserire un titolo
     #
-    for _, r in df.iterrows():     # scorro le righe nel file
+    total_rows = len(df)
+    for row_index, (_, r) in enumerate(df.iterrows(), start=1):  # scorro le righe nel file
         r = _clean_row_fields(r)  # verifico che non ci siano campi nulli o non validi
         formatted_price = _format_price(r)
+        # notifico la UI della riga in elaborazione (fase 'rows' = 0-90%)
+        _emit_progress(
+            progress_cb, phase="rows", index=row_index, total=total_rows,
+            fraction=(row_index / total_rows * 0.9) if total_rows else 0.0,
+            category=str(r[XLS_CATEGORY]), company=str(r[XLS_COMPANY]),
+            product=str(r[XLS_ITEM]))
 
         # ---------- verifico per inserire la pagina del titolo della categoria
         if previous_category != r[XLS_CATEGORY]:
@@ -571,8 +594,19 @@ def build_pdf(progress_cb=None):
     logger.info(f"Read all items in XLSX file")
 
     if progress_cb is not None:
+        size_est = [0]
+
+        def _render_cb(typ, value):
+            # ReportLab: 'SIZE_EST' col totale stimato di flowable, poi
+            # 'PROGRESS' col conteggio corrente. Mappo la fase 'render' su 90-100%.
+            if typ == "SIZE_EST":
+                size_est[0] = value or 0
+            elif typ == "PROGRESS" and size_est[0]:
+                frac = 0.9 + 0.1 * min(1.0, value / size_est[0])
+                _emit_progress(progress_cb, phase="render", fraction=frac)
+
         try:
-            doc.setProgressCallBack(progress_cb)
+            doc.setProgressCallBack(_render_cb)
         except Exception:  # pragma: no cover - difensivo, non deve mai bloccare la build
             logger.warning("setProgressCallBack non disponibile", exc_info=True)
 
@@ -583,4 +617,5 @@ def build_pdf(progress_cb=None):
         logger.error("doc.build() failed: %s", e, exc_info=True)
         raise
 
+    _emit_progress(progress_cb, phase="done", fraction=1.0)
     return pdf_file_name

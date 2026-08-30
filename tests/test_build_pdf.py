@@ -215,12 +215,23 @@ class TestBuildPdfFlushesTrailingRow(_BuildPdfTestCase):
         self._write_excel(2)
 
         events = []
-        result = build_PDF.build_pdf(progress_cb=lambda typ, val: events.append(typ))
+        result = build_PDF.build_pdf(progress_cb=events.append)
 
         self.assertTrue(str(result).endswith("_Catalog.pdf"))
         self.assertTrue(Path(result).is_file())
-        # ReportLab notifica almeno l'inizio/fine dell'assemblaggio.
-        self.assertTrue(events)
+        # una notifica 'rows' per riga Excel + la 'done' finale a fraction 1.0
+        row_events = [e for e in events if e.get("phase") == "rows"]
+        self.assertEqual(len(row_events), 2)
+        self.assertEqual(row_events[-1]["index"], 2)
+        self.assertEqual(row_events[-1]["total"], 2)
+        self.assertIn("product", row_events[0])
+        self.assertTrue(any(e.get("phase") == "done"
+                            and e.get("fraction") == 1.0 for e in events))
+        # le fraction sono monotone non decrescenti e nel range [0, 1]
+        fracs = [e["fraction"] for e in events if "fraction" in e]
+        self.assertEqual(fracs, sorted(fracs))
+        self.assertGreaterEqual(min(fracs), 0.0)
+        self.assertLessEqual(max(fracs), 1.0)
 
     def test_four_rows_flushes_full_group_and_trailing_row(self):
         self._write_excel(4)  # 1 gruppo completo da 3 + 1 riga finale pendente

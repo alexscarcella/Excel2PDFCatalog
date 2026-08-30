@@ -1,5 +1,6 @@
 import os
 import platform
+import queue
 import subprocess
 import sys
 import threading
@@ -306,41 +307,101 @@ def build_UI_and_GO():
             messagebox.showerror(t("dialog.error.title"),
                                  t("dialog.open_failed.msg", path=target))
 
+    def _center_over_root(win):
+        """Posiziona `win` al centro della finestra principale dell'app
+        (non del monitor). Da chiamare dopo aver creato i widget."""
+        win.update_idletasks()
+        try:
+            rx, ry = root.winfo_rootx(), root.winfo_rooty()
+            rw, rh = root.winfo_width(), root.winfo_height()
+            ww = win.winfo_reqwidth()
+            wh = win.winfo_reqheight()
+            x = rx + max((rw - ww) // 2, 0)
+            y = ry + max((rh - wh) // 2, 0)
+            win.geometry(f"+{x}+{y}")
+        except Exception:  # pragma: no cover - solo cosmetico
+            logger.debug("Impossibile centrare la finestra", exc_info=True)
+
     def _run_build_with_progress():
         """Esegue build_PDF.build_pdf() in un thread di lavoro mostrando una
-        finestra modale con barra di avanzamento. Ritorna il path del PDF
-        oppure None se la generazione e' fallita (errore gia' segnalato)."""
+        finestra modale (centrata sull'app) con barra di avanzamento 0-100%%
+        e un log scorrevole delle righe in elaborazione. Ritorna il path del
+        PDF oppure None se la generazione e' fallita (errore gia' segnalato)."""
         win = tk.Toplevel(root)
         win.title(t("dialog.building.title"))
         win.transient(root)
         win.resizable(False, False)
         win.protocol("WM_DELETE_WINDOW", lambda: None)  # non chiudibile a mano
+
         ttk.Label(win, text=t("dialog.building.msg")).pack(
-            padx=PAD_XL, pady=(PAD_XL, PAD_M))
-        bar = ttk.Progressbar(win, mode="indeterminate", length=300)
-        bar.pack(padx=PAD_XL, pady=(0, PAD_XL))
-        bar.start(12)
-        win.update_idletasks()
+            padx=PAD_XL, pady=(PAD_XL, PAD_M), anchor="w")
+
+        bar_row = ttk.Frame(win)
+        bar_row.pack(fill="x", padx=PAD_XL)
+        pct_var = tk.StringVar(value="0%")
+        bar = ttk.Progressbar(bar_row, mode="determinate", maximum=100,
+                              length=360)
+        bar.pack(side="left", fill="x", expand=True)
+        ttk.Label(bar_row, textvariable=pct_var, width=5,
+                  anchor="e").pack(side="left", padx=(PAD_M, 0))
+
+        ttk.Label(win, text=t("dialog.building.activity")).pack(
+            padx=PAD_XL, pady=(PAD_M, PAD_XS), anchor="w")
+        log_wrap = ttk.Frame(win)
+        log_wrap.pack(fill="both", expand=True, padx=PAD_XL, pady=(0, PAD_XL))
+        log_sb = ttk.Scrollbar(log_wrap, orient="vertical")
+        log_sb.pack(side="right", fill="y")
+        log = tk.Text(log_wrap, height=8, width=52, wrap="none",
+                      state="disabled", relief="solid", borderwidth=1,
+                      yscrollcommand=log_sb.set)
+        log.pack(side="left", fill="both", expand=True)
+        log_sb.config(command=log.yview)
+
+        _center_over_root(win)
         win.grab_set()
 
         outcome = {}
+        q = queue.Queue()
 
         def worker():
             try:
-                outcome["path"] = build_PDF.build_pdf()
-            except BaseException as e:  # cattura anche SystemExit/argparse
+                outcome["path"] = build_PDF.build_pdf(progress_cb=q.put)
+            except BaseException as e:  # cattura anche SystemExit
                 outcome["error"] = e
 
         th = threading.Thread(target=worker, name="build-pdf", daemon=True)
         th.start()
 
-        def poll():
-            if th.is_alive():
-                root.after(80, poll)
-            else:
-                win.destroy()
+        def _apply(ev):
+            frac = ev.get("fraction", 0.0)
+            pct = max(0, min(100, int(round(frac * 100))))
+            bar["value"] = pct
+            pct_var.set(f"{pct}%")
+            if ev.get("phase") == "rows":
+                line = "[{i}/{n}] {cat}  ›  {co}  ›  {prod}".format(
+                    i=ev.get("index", "?"), n=ev.get("total", "?"),
+                    cat=ev.get("category", ""), co=ev.get("company", ""),
+                    prod=ev.get("product", ""))
+                log.configure(state="normal")
+                log.insert("end", line + "\n")
+                log.see("end")
+                log.configure(state="disabled")
 
-        root.after(80, poll)
+        def pump():
+            try:
+                while True:
+                    _apply(q.get_nowait())
+            except queue.Empty:
+                pass
+            if th.is_alive():
+                root.after(60, pump)
+            else:
+                if "error" not in outcome:
+                    bar["value"] = 100
+                    pct_var.set("100%")
+                win.after(150, win.destroy)
+
+        root.after(60, pump)
         win.wait_window()
 
         if "error" in outcome:
@@ -373,7 +434,7 @@ def build_UI_and_GO():
             side="left", padx=PAD_XS)
         ttk.Button(btns, text=t("btn.close"), style="Accent.TButton",
                    command=win.destroy).pack(side="left", padx=PAD_XS)
-        win.update_idletasks()
+        _center_over_root(win)
         win.grab_set()
         win.wait_window()
 
