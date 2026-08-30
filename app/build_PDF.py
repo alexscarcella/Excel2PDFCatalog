@@ -5,7 +5,7 @@ import pandas as pd
 import locale
 import os
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether, NextPageTemplate
+from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether, KeepInFrame, NextPageTemplate
 from reportlab.platypus import Flowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
@@ -135,7 +135,7 @@ def _init_styles():
     styles.add(ParagraphStyle(name="CategoryTitle", fontName=font_primary, fontSize=54, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["CATEGORY_TITLE_COLOR"], spaceAfter=20))
     styles.add(ParagraphStyle(name="CompanyTitle", fontName=font_primary, fontSize=48, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["COMPANY_TITLE_COLOR"], spaceAfter=20))
     styles.add(ParagraphStyle(name="TableCompanyName", fontName=font_primary, fontSize=8, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["TABLE_COMPANY_NAME_COLOR"], spaceAfter=0, spaceBefore=0, textTransform='uppercase'))
-    styles.add(ParagraphStyle(name="TableItem", fontName=font_primary, fontSize=11, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["TABLE_ITEM_NAME_COLOR"], spaceAfter=0))
+    styles.add(ParagraphStyle(name="TableItem", fontName=font_primary, fontSize=11, leading=12, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["TABLE_ITEM_NAME_COLOR"], spaceAfter=0))
     styles.add(ParagraphStyle(name="TableItemPrice", fontName=font_primary, fontSize=12, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_PRICE_COLOR"], spaceAfter=0))
     styles.add(ParagraphStyle(name="TableItemSize", fontName=font_primary, fontSize=10, alignment=0, textColor=config_utils.colors_dictionary["TABLE_ITEM_SIZE_COLOR"], spaceAfter=0))
     styles.add(ParagraphStyle(name="TableItemBadge", fontName=font_primary, fontSize=10, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_NEWS_COLOR"], spaceAfter=0))
@@ -273,7 +273,8 @@ def flush_1x3_row():
         ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"]),
         ('ALIGN',(0,0),(-1,-1),'CENTER'),
         ("VALIGN", (0, 0), (-1,-1), "MIDDLE"),
-        ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"])
+        # niente 'GRID': tracciava una hairline (spesso visibile) sui bordi
+        # verticali fra le 3 colonne e sul perimetro della griglia
     ]))
     story.append(KeepTogether(raw_1x3))
     raw_1x3_items = ["","",""]
@@ -370,7 +371,10 @@ def _load_product_image(r):
     """Carica l'immagine del prodotto cercando prima il file corrispondente al
     codice Excel, poi (se abilitato) generandone una casuale, infine ricadendo
     su default.png. Ritorna un oggetto reportlab Image, oppure None."""
-    IMAGE_SIZE = 4.4 * cm
+    # 4.1 cm (era 4.4): la scheda ha ora due righe ad altezza fissa (nome ~1.8 cm
+    # e formato/prezzo ~0.95 cm); ridurre di poco l'immagine mantiene il totale
+    # dentro la cella della griglia 3x3 con un margine di sicurezza.
+    IMAGE_SIZE = 4.1 * cm
     img = None
     try:
         # FIX SICUREZZA (punto 8 della revisione): il valore della cella Excel veniva
@@ -404,7 +408,7 @@ def _load_product_image(r):
 def _build_product_card(r, img, formatted_price):
     """Costruisce la tabella ReportLab (scheda prodotto) con immagine, azienda,
     nome, formato/prezzo e badge, pronta per essere inserita nella griglia 3x3."""
-    TABLE_GAP = 0.3 * cm
+    TABLE_GAP = 0.2 * cm
     # FIX (revisione batch A, punto 5): i valori Excel vanno sanificati con escape()
     # prima di essere avvolti nei tag <b>/<i> propri dell'app, altrimenti un valore
     # contenente "&"/"<"/">" produce markup non valido e interrompe l'intera build.
@@ -413,13 +417,45 @@ def _build_product_card(r, img, formatted_price):
     formatted_size = f"{escape(str(r[XLS_SIZE]))}"
     formatted_badge = f"{escape(str(r[XLS_BADGE]))}"
 
+    # Nome prodotto: puo' arrivare a 3-4 righe. Gli si assegna quasi tutto lo
+    # spazio verticale libero della scheda (NAME_ROW_HEIGHT) e quasi tutta la
+    # larghezza (padding orizzontale minimo, vedi TableStyle sotto), cosi' il
+    # testo si distribuisce su piu' righe a corpo pieno invece di essere
+    # rimpicciolito. Il KeepInFrame(mode='shrink') resta come rete di sicurezza:
+    # scala il font SOLO per i nomi che eccedono anche NAME_ROW_HEIGHT, senza mai
+    # sforare il bordo arrotondato. L'altezza della cella e' fissa, quindi il
+    # footprint della scheda e la griglia 3x3 (9 schede/pagina) non cambiano.
+    NAME_ROW_HEIGHT = 1.8 * cm
+    name_flowable = KeepInFrame(
+        0, NAME_ROW_HEIGHT,
+        [Paragraph(formatted_item, styles['TableItem'])],
+        mode='shrink', hAlign='CENTER', vAlign='MIDDLE',
+    )
+
+    # La riga formato/prezzo (indice 3) ha altezza FISSA (SIZE_ROW_HEIGHT). Se
+    # fosse a contenuto libero, un valore di 'Formato' lungo (es. "Confezione da
+    # 10") andrebbe a capo su 2 righe e farebbe crescere l'intera scheda oltre la
+    # cella della griglia 3x3: il bordo arrotondato si deformava e si
+    # sovrapponeva alle schede vicine. Con l'altezza fissa il footprint resta
+    # costante; formato e prezzo sono avvolti in un KeepInFrame(mode='shrink')
+    # che li rimpicciolisce solo se non entrano nella riga.
+    SIZE_ROW_HEIGHT = 0.95 * cm
+    size_flowable = KeepInFrame(
+        0, SIZE_ROW_HEIGHT, [Paragraph(formatted_size, styles['TableItemSize'])],
+        mode='shrink', hAlign='LEFT', vAlign='MIDDLE',
+    )
+    price_flowable = KeepInFrame(
+        0, SIZE_ROW_HEIGHT, [Paragraph(formatted_price, styles['TableItemPrice'])],
+        mode='shrink', hAlign='RIGHT', vAlign='MIDDLE',
+    )
+
     info = [
         [img, ""],
         [Paragraph(formatted_company, styles['TableCompanyName']), ""],
-        [Paragraph(formatted_item, styles['TableItem']), ""],
-        [Paragraph(formatted_size, styles['TableItemSize']), Paragraph(formatted_price, styles['TableItemPrice'])]
+        [name_flowable, ""],
+        [size_flowable, price_flowable]
     ]
-    table_item = Table(info, colWidths=[USABLE_WIDTH/6-TABLE_GAP, USABLE_WIDTH/6-TABLE_GAP], rowHeights=[None, 0.5*cm, 1.1*cm, None])
+    table_item = Table(info, colWidths=[USABLE_WIDTH/6-TABLE_GAP, USABLE_WIDTH/6-TABLE_GAP], rowHeights=[None, 0.5*cm, NAME_ROW_HEIGHT, SIZE_ROW_HEIGHT])
     table_item.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
         ("VALIGN", (0, 0), (-1,-1), "MIDDLE"),
@@ -428,7 +464,21 @@ def _build_product_card(r, img, formatted_price):
         ('TOPPADDING', (0,0), (-1,-1), 0.3 * cm),
         ('RIGHTPADDING', (0,0), (-1,-1), 0.3 * cm),
         ('LEFTPADDING', (0,0), (-1,-1), 0.3 * cm),
-        ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
+        # la riga del nome (indice 2) sfrutta quasi tutta la larghezza della
+        # scheda: padding orizzontale minimo per non forzare a capo troppo presto
+        ('LEFTPADDING', (0,2), (-1,2), 3),
+        ('RIGHTPADDING', (0,2), (-1,2), 3),
+        # riga formato/prezzo (indice 3): padding ridotto su tutti i lati per
+        # lasciare piu' spazio utile al testo dentro la riga ad altezza fissa
+        ('TOPPADDING', (0,3), (-1,3), 4),
+        ('BOTTOMPADDING', (0,3), (-1,3), 3),
+        ('LEFTPADDING', (0,3), (-1,3), 4),
+        ('RIGHTPADDING', (0,3), (-1,3), 4),
+        # NB: niente 'GRID' qui. Con 'ROUNDEDCORNERS' il perimetro tracciato da
+        # GRID resta a spigoli vivi e appariva come una sottile riga verticale
+        # doppia accanto al bordo arrotondato (piu' evidente sulla fila centrale
+        # della griglia). Le linee interne non servono: sarebbero comunque del
+        # colore dello sfondo scheda.
         ('BOX', (0, 0), (-1, -1), excel_config.card_border_width(), config_utils.colors_dictionary["TABLE_BORDER_COLOR"]),
         ('SPAN',(0,0),(-1,0)),
         ('SPAN',(0,1),(-1,1)),
@@ -446,7 +496,7 @@ def _build_product_card(r, img, formatted_price):
     table_item_big = Table(table_item_big_info, rowHeights=[0.3*cm, None])
     table_item_big.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"]),
-        ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"]),
+        # niente 'GRID': solo hairline inutili del colore dello sfondo
         ("VALIGN", (0, 0), (0,-1), "BOTTOM"),
         ("VALIGN", (0, 0), (1,-1), "TOP"),
         ('ALIGN',(0,0),(-1,-1),'CENTER'),
@@ -456,7 +506,32 @@ def _build_product_card(r, img, formatted_price):
 
 
 # metodo che costruisce il file PDF
-def build_pdf():
+def _emit_progress(cb, **event):
+    """Invoca `cb` (se presente) con un dict che descrive l'avanzamento.
+
+    Chiavi: 'phase' ('rows' | 'render' | 'done'), 'fraction' (0.0-1.0 sul
+    totale), e per la fase 'rows' anche 'index', 'total', 'category',
+    'company', 'product'. Un'eccezione nel callback non blocca la build.
+    """
+    if cb is None:
+        return
+    try:
+        cb(event)
+    except Exception:  # pragma: no cover - il progresso non deve mai far fallire la build
+        logger.warning("progress_cb ha sollevato un'eccezione", exc_info=True)
+
+
+def build_pdf(progress_cb=None):
+    """Genera il PDF del catalogo.
+
+    progress_cb: callable opzionale invocato con un dict di avanzamento
+    (vedi _emit_progress). La fase 'rows' copre 0-90%% (una notifica per
+    riga Excel, con categoria/produttore/prodotto correnti), la fase
+    'render' 90-100%% (assemblaggio ReportLab). Serve alla UI per animare
+    una barra 0-100%% e un log scorrevole senza bloccare il main thread.
+
+    Ritorna il path del file PDF creato (str).
+    """
     global raw_1x3_counter, raw_1x3_items, story, header_state
     #---------------------------------------------------
     #
@@ -494,7 +569,7 @@ def build_pdf():
         df = pd.read_excel(config_utils.excel_file)
     except Exception as e:
         logger.error("FILE EXCEL ERROR!! ", exc_info=True)
-        sys.exit()
+        raise
     # FIX (revisione batch A, punto 3): senza questo controllo, una colonna
     # mancante (es. header rinominato dall'utente) faceva risalire un KeyError
     # non gestito dal primo accesso a r[...] dentro _clean_row_fields/_format_price,
@@ -510,9 +585,16 @@ def build_pdf():
     previous_category = "" # la variabile che mi permette di capire se c'e' un cambio di categoria in modo da inserire una pagina con il titolo
     previous_company = "" # la variabile che mi permette di capire se c'e' un cambio di azienda in modo da inserire un titolo
     #
-    for _, r in df.iterrows():     # scorro le righe nel file
+    total_rows = len(df)
+    for row_index, (_, r) in enumerate(df.iterrows(), start=1):  # scorro le righe nel file
         r = _clean_row_fields(r)  # verifico che non ci siano campi nulli o non validi
         formatted_price = _format_price(r)
+        # notifico la UI della riga in elaborazione (fase 'rows' = 0-90%)
+        _emit_progress(
+            progress_cb, phase="rows", index=row_index, total=total_rows,
+            fraction=(row_index / total_rows * 0.9) if total_rows else 0.0,
+            category=str(r[XLS_CATEGORY]), company=str(r[XLS_COMPANY]),
+            product=str(r[XLS_ITEM]))
 
         # ---------- verifico per inserire la pagina del titolo della categoria
         if previous_category != r[XLS_CATEGORY]:
@@ -539,9 +621,29 @@ def build_pdf():
         flush_1x3_row()
     logger.info(f"Read all items in XLSX file")
 
+    if progress_cb is not None:
+        size_est = [0]
+
+        def _render_cb(typ, value):
+            # ReportLab: 'SIZE_EST' col totale stimato di flowable, poi
+            # 'PROGRESS' col conteggio corrente. Mappo la fase 'render' su 90-100%.
+            if typ == "SIZE_EST":
+                size_est[0] = value or 0
+            elif typ == "PROGRESS" and size_est[0]:
+                frac = 0.9 + 0.1 * min(1.0, value / size_est[0])
+                _emit_progress(progress_cb, phase="render", fraction=frac)
+
+        try:
+            doc.setProgressCallBack(_render_cb)
+        except Exception:  # pragma: no cover - difensivo, non deve mai bloccare la build
+            logger.warning("setProgressCallBack non disponibile", exc_info=True)
+
     try:
         doc.build(story)
         logger.info(f"******* END OK --> '{pdf_file_name}' created ")
     except Exception as e:
         logger.error("doc.build() failed: %s", e, exc_info=True)
-        sys.exit(1)
+        raise
+
+    _emit_progress(progress_cb, phase="done", fraction=1.0)
+    return pdf_file_name
