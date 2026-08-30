@@ -171,6 +171,17 @@ class TestBuildProductCardSizeRow(unittest.TestCase):
         long = self._inner_table(self._card("Confezione da 10"))
         self.assertEqual(short._rowHeights, long._rowHeights)
 
+    def test_card_tables_have_no_grid_line(self):
+        # 'GRID' con spessore 0 del colore dello sfondo tracciava comunque una
+        # hairline a spigoli vivi che, accanto al bordo arrotondato ('BOX' +
+        # 'ROUNDEDCORNERS'), appariva come una riga verticale doppia sui bordi
+        # della griglia. Deve restare solo il BOX.
+        card = self._card("1 pz")
+        inner = self._inner_table(card)
+        self.assertNotIn("GRID", {c[0] for c in inner._linecmds})
+        self.assertIn("BOX", {c[0] for c in inner._linecmds})
+        self.assertNotIn("GRID", {c[0] for c in card._linecmds})
+
 
 class _BuildPdfTestCase(unittest.TestCase):
     """Isola i path/scalari di config_utils in cartelle temporanee, cosi' i

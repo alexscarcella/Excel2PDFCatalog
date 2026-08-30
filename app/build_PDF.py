@@ -273,7 +273,8 @@ def flush_1x3_row():
         ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"]),
         ('ALIGN',(0,0),(-1,-1),'CENTER'),
         ("VALIGN", (0, 0), (-1,-1), "MIDDLE"),
-        ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"])
+        # niente 'GRID': tracciava una hairline (spesso visibile) sui bordi
+        # verticali fra le 3 colonne e sul perimetro della griglia
     ]))
     story.append(KeepTogether(raw_1x3))
     raw_1x3_items = ["","",""]
@@ -473,7 +474,11 @@ def _build_product_card(r, img, formatted_price):
         ('BOTTOMPADDING', (0,3), (-1,3), 3),
         ('LEFTPADDING', (0,3), (-1,3), 4),
         ('RIGHTPADDING', (0,3), (-1,3), 4),
-        ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
+        # NB: niente 'GRID' qui. Con 'ROUNDEDCORNERS' il perimetro tracciato da
+        # GRID resta a spigoli vivi e appariva come una sottile riga verticale
+        # doppia accanto al bordo arrotondato (piu' evidente sulla fila centrale
+        # della griglia). Le linee interne non servono: sarebbero comunque del
+        # colore dello sfondo scheda.
         ('BOX', (0, 0), (-1, -1), excel_config.card_border_width(), config_utils.colors_dictionary["TABLE_BORDER_COLOR"]),
         ('SPAN',(0,0),(-1,0)),
         ('SPAN',(0,1),(-1,1)),
@@ -491,7 +496,7 @@ def _build_product_card(r, img, formatted_price):
     table_item_big = Table(table_item_big_info, rowHeights=[0.3*cm, None])
     table_item_big.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"]),
-        ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["PRODUCTS_BACKGROUND_COLOR"]),
+        # niente 'GRID': solo hairline inutili del colore dello sfondo
         ("VALIGN", (0, 0), (0,-1), "BOTTOM"),
         ("VALIGN", (0, 0), (1,-1), "TOP"),
         ('ALIGN',(0,0),(-1,-1),'CENTER'),
