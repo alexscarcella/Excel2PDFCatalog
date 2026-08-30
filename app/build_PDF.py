@@ -5,7 +5,7 @@ import pandas as pd
 import locale
 import os
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether, NextPageTemplate
+from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether, KeepInFrame, NextPageTemplate
 from reportlab.platypus import Flowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
@@ -135,7 +135,7 @@ def _init_styles():
     styles.add(ParagraphStyle(name="CategoryTitle", fontName=font_primary, fontSize=54, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["CATEGORY_TITLE_COLOR"], spaceAfter=20))
     styles.add(ParagraphStyle(name="CompanyTitle", fontName=font_primary, fontSize=48, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["COMPANY_TITLE_COLOR"], spaceAfter=20))
     styles.add(ParagraphStyle(name="TableCompanyName", fontName=font_primary, fontSize=8, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["TABLE_COMPANY_NAME_COLOR"], spaceAfter=0, spaceBefore=0, textTransform='uppercase'))
-    styles.add(ParagraphStyle(name="TableItem", fontName=font_primary, fontSize=11, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["TABLE_ITEM_NAME_COLOR"], spaceAfter=0))
+    styles.add(ParagraphStyle(name="TableItem", fontName=font_primary, fontSize=11, leading=12, alignment=TA_CENTER, textColor=config_utils.colors_dictionary["TABLE_ITEM_NAME_COLOR"], spaceAfter=0))
     styles.add(ParagraphStyle(name="TableItemPrice", fontName=font_primary, fontSize=12, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_PRICE_COLOR"], spaceAfter=0))
     styles.add(ParagraphStyle(name="TableItemSize", fontName=font_primary, fontSize=10, alignment=0, textColor=config_utils.colors_dictionary["TABLE_ITEM_SIZE_COLOR"], spaceAfter=0))
     styles.add(ParagraphStyle(name="TableItemBadge", fontName=font_primary, fontSize=10, alignment=2, textColor=config_utils.colors_dictionary["TABLE_ITEM_NEWS_COLOR"], spaceAfter=0))
@@ -404,7 +404,7 @@ def _load_product_image(r):
 def _build_product_card(r, img, formatted_price):
     """Costruisce la tabella ReportLab (scheda prodotto) con immagine, azienda,
     nome, formato/prezzo e badge, pronta per essere inserita nella griglia 3x3."""
-    TABLE_GAP = 0.3 * cm
+    TABLE_GAP = 0.2 * cm
     # FIX (revisione batch A, punto 5): i valori Excel vanno sanificati con escape()
     # prima di essere avvolti nei tag <b>/<i> propri dell'app, altrimenti un valore
     # contenente "&"/"<"/">" produce markup non valido e interrompe l'intera build.
@@ -413,13 +413,28 @@ def _build_product_card(r, img, formatted_price):
     formatted_size = f"{escape(str(r[XLS_SIZE]))}"
     formatted_badge = f"{escape(str(r[XLS_BADGE]))}"
 
+    # Nome prodotto: puo' arrivare a 3-4 righe. Gli si assegna quasi tutto lo
+    # spazio verticale libero della scheda (NAME_ROW_HEIGHT) e quasi tutta la
+    # larghezza (padding orizzontale minimo, vedi TableStyle sotto), cosi' il
+    # testo si distribuisce su piu' righe a corpo pieno invece di essere
+    # rimpicciolito. Il KeepInFrame(mode='shrink') resta come rete di sicurezza:
+    # scala il font SOLO per i nomi che eccedono anche NAME_ROW_HEIGHT, senza mai
+    # sforare il bordo arrotondato. L'altezza della cella e' fissa, quindi il
+    # footprint della scheda e la griglia 3x3 (9 schede/pagina) non cambiano.
+    NAME_ROW_HEIGHT = 1.8 * cm
+    name_flowable = KeepInFrame(
+        0, NAME_ROW_HEIGHT,
+        [Paragraph(formatted_item, styles['TableItem'])],
+        mode='shrink', hAlign='CENTER', vAlign='MIDDLE',
+    )
+
     info = [
         [img, ""],
         [Paragraph(formatted_company, styles['TableCompanyName']), ""],
-        [Paragraph(formatted_item, styles['TableItem']), ""],
+        [name_flowable, ""],
         [Paragraph(formatted_size, styles['TableItemSize']), Paragraph(formatted_price, styles['TableItemPrice'])]
     ]
-    table_item = Table(info, colWidths=[USABLE_WIDTH/6-TABLE_GAP, USABLE_WIDTH/6-TABLE_GAP], rowHeights=[None, 0.5*cm, 1.1*cm, None])
+    table_item = Table(info, colWidths=[USABLE_WIDTH/6-TABLE_GAP, USABLE_WIDTH/6-TABLE_GAP], rowHeights=[None, 0.5*cm, NAME_ROW_HEIGHT, None])
     table_item.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
         ("VALIGN", (0, 0), (-1,-1), "MIDDLE"),
@@ -428,6 +443,13 @@ def _build_product_card(r, img, formatted_price):
         ('TOPPADDING', (0,0), (-1,-1), 0.3 * cm),
         ('RIGHTPADDING', (0,0), (-1,-1), 0.3 * cm),
         ('LEFTPADDING', (0,0), (-1,-1), 0.3 * cm),
+        # la riga del nome (indice 2) sfrutta quasi tutta la larghezza della
+        # scheda: padding orizzontale minimo per non forzare a capo troppo presto
+        ('LEFTPADDING', (0,2), (-1,2), 3),
+        ('RIGHTPADDING', (0,2), (-1,2), 3),
+        # la riga formato/prezzo (indice 3) e' una sola riga: meno padding sopra,
+        # cosi' l'altezza recuperata va alla riga del nome
+        ('TOPPADDING', (0,3), (-1,3), 4),
         ('GRID', (0,0), (-1,-1), 0, config_utils.colors_dictionary["TABLE_BACKGROUND_COLOR"]),
         ('BOX', (0, 0), (-1, -1), excel_config.card_border_width(), config_utils.colors_dictionary["TABLE_BORDER_COLOR"]),
         ('SPAN',(0,0),(-1,0)),
