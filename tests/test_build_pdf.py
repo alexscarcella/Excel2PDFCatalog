@@ -126,6 +126,17 @@ class TestBuildPdfFlushesTrailingRow(_BuildPdfTestCase):
         self.assertEqual(build_PDF.raw_1x3_counter, 0)
         self.assertEqual(build_PDF.raw_1x3_items, ["", "", ""])
 
+    def test_build_pdf_returns_path_and_invokes_progress_callback(self):
+        self._write_excel(2)
+
+        events = []
+        result = build_PDF.build_pdf(progress_cb=lambda typ, val: events.append(typ))
+
+        self.assertTrue(str(result).endswith("_Catalog.pdf"))
+        self.assertTrue(Path(result).is_file())
+        # ReportLab notifica almeno l'inizio/fine dell'assemblaggio.
+        self.assertTrue(events)
+
     def test_four_rows_flushes_full_group_and_trailing_row(self):
         self._write_excel(4)  # 1 gruppo completo da 3 + 1 riga finale pendente
 

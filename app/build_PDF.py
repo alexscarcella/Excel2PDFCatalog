@@ -456,7 +456,16 @@ def _build_product_card(r, img, formatted_price):
 
 
 # metodo che costruisce il file PDF
-def build_pdf():
+def build_pdf(progress_cb=None):
+    """Genera il PDF del catalogo.
+
+    progress_cb: callable opzionale invocato durante l'assemblaggio del
+    documento con la firma di ReportLab ``(typ, value)`` (typ in
+    'STARTED'/'SIZE_EST'/'PAGE'/'PROGRESS'/'FINISHED'). Serve alla UI per
+    animare una barra di avanzamento senza bloccare il thread principale.
+
+    Ritorna il path del file PDF creato (str).
+    """
     global raw_1x3_counter, raw_1x3_items, story, header_state
     #---------------------------------------------------
     #
@@ -494,7 +503,7 @@ def build_pdf():
         df = pd.read_excel(config_utils.excel_file)
     except Exception as e:
         logger.error("FILE EXCEL ERROR!! ", exc_info=True)
-        sys.exit()
+        raise
     # FIX (revisione batch A, punto 3): senza questo controllo, una colonna
     # mancante (es. header rinominato dall'utente) faceva risalire un KeyError
     # non gestito dal primo accesso a r[...] dentro _clean_row_fields/_format_price,
@@ -539,9 +548,17 @@ def build_pdf():
         flush_1x3_row()
     logger.info(f"Read all items in XLSX file")
 
+    if progress_cb is not None:
+        try:
+            doc.setProgressCallBack(progress_cb)
+        except Exception:  # pragma: no cover - difensivo, non deve mai bloccare la build
+            logger.warning("setProgressCallBack non disponibile", exc_info=True)
+
     try:
         doc.build(story)
         logger.info(f"******* END OK --> '{pdf_file_name}' created ")
     except Exception as e:
         logger.error("doc.build() failed: %s", e, exc_info=True)
-        sys.exit(1)
+        raise
+
+    return pdf_file_name
